@@ -1,0 +1,23 @@
+[tool.black]
+exclude = '.venv'
+
+[tool.poetry]
+name = "ai-cat-api"
+version = "0.1.0"
+description = ""
+authors = ["keitakn <keita.koga.work@gmail.com>"]
+readme = "README.md"
+packages = [{include = "ai_cat_api"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+uvicorn = "^0.22.0"
+fastapi = "^0.95.2"
+openai = "^0.27.6"
+langchain = "^0.0.170"
+flake8 = "^6.0.0"
+black = "^23.3.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
