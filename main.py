@@ -70,11 +70,20 @@ def llm_thread(g, prompt):
         g.close()
 
 
+def format_sse(response_body: dict) -> str:
+    json_body = json.dumps(response_body, ensure_ascii=False)
+    sse_message = f"data: {json_body}\n\n"
+    return sse_message
+
+
 def chat(prompt):
     g = ThreadedGenerator()
     threading.Thread(target=llm_thread, args=(g, prompt)).start()
     for message in g:
-        yield f"data: {json.dumps({'message': message, 'id': 'xxxxxxxx-xxxxxxxxx-xxxxxxxxxxxxxxxxx'}, ensure_ascii=False)}\n\n"
+        # TODO idをどうやって生成するかは後で考える
+        yield format_sse(
+            {"id": "xxxxxxxx-xxxxxxxxx-xxxxxxxxxxxxxxxxx", "message": message}
+        )
 
 
 class Message(BaseModel):
