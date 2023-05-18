@@ -4,6 +4,8 @@ import os
 import json
 import logging
 import uvicorn
+from typing import Dict, List
+
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -91,9 +93,20 @@ template = """
 * Userに対してはちゃんをつけて呼んでください。
 """
 
+# とりあえず仮でオンメモリで会話履歴を持つ
+user_conversations: Dict[str, List[HumanMessage or SystemMessage]] = {}
 
-def llm_thread(g, prompt):
+
+def llm_thread(g, user_id, prompt):
     try:
+        conversation = user_conversations.get(
+            user_id, [SystemMessage(content=template)]
+        )
+
+        conversation.append(HumanMessage(content=prompt))
+
+        user_conversations[user_id] = conversation
+
         chat_model = ChatOpenAI(
             verbose=True,
             streaming=True,
@@ -101,12 +114,7 @@ def llm_thread(g, prompt):
             openai_api_key=OPENAI_API_KEY,
             temperature=0.7,
         )
-        chat_model(
-            [
-                SystemMessage(content=template),
-                HumanMessage(content=prompt),
-            ]
-        )
+        chat_model(conversation)
     finally:
         g.close()
 
@@ -117,14 +125,15 @@ def format_sse(response_body: dict) -> str:
     return sse_message
 
 
-def chat(cat_id: str, prompt: str):
+def chat(user_id: str, cat_id: str, prompt: str):
     g = ThreadedGenerator()
-    threading.Thread(target=llm_thread, args=(g, prompt)).start()
+    threading.Thread(target=llm_thread, args=(g, user_id, prompt)).start()
     for message in g:
         # TODO idをどうやって生成するかは後で考える
         yield format_sse(
             {
                 "id": "xxxxxxxx-xxxxxxxxx-xxxxxxxxxxxxxxxxx",
+                "userId": user_id,
                 "catId": cat_id,
                 "message": message,
             }
@@ -132,6 +141,7 @@ def chat(cat_id: str, prompt: str):
 
 
 class Message(BaseModel):
+    userId: str
     message: str
 
 
@@ -141,7 +151,7 @@ async def cats_streaming_messages(cat_id: str, message: Message):
     logger.info(cat_id)
 
     return StreamingResponse(
-        chat(cat_id, message.message), media_type="text/event-stream"
+        chat(message.userId, cat_id, message.message), media_type="text/event-stream"
     )
 
 
