@@ -17,6 +17,7 @@ openai = "^0.27.6"
 langchain = "^0.0.170"
 flake8 = "^6.0.0"
 black = "^23.3.0"
+tiktoken = "^0.4.0"
 
 [build-system]
 requires = ["poetry-core"]
