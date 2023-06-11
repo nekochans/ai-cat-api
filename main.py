@@ -2,7 +2,7 @@ import os
 import json
 import logging
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from langchain.chat_models import ChatOpenAI
@@ -36,6 +36,7 @@ app = FastAPI(
 )
 
 OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
+API_CREDENTIAL = os.environ["API_CREDENTIAL"]
 
 template = """
 あなたは優しいねこのもこです。
@@ -93,10 +94,32 @@ class FetchCatMessagesRequestBody(BaseModel):
 
 
 @app.post("/cats/{cat_id}/messages")
-async def cats_messages(cat_id: str, request_body: FetchCatMessagesRequestBody):
+async def cats_messages(
+    request: Request, cat_id: str, request_body: FetchCatMessagesRequestBody
+):
     # TODO cat_id 毎にねこの人格を設定する
     logger.info(cat_id)
     logger.info(request_body.userId)
+
+    authorization = request.headers.get("Authorization", None)
+
+    print(authorization)
+
+    un_authorization_response_body = {
+        "type": "UNAUTHORIZED",
+        "title": "invalid Authorization Header.",
+    }
+
+    if authorization is None:
+        return JSONResponse(content=un_authorization_response_body, status_code=401)
+
+    authorization_headers = authorization.split(" ")
+
+    if len(authorization_headers) != 2 or authorization_headers[0] != "Basic":
+        return JSONResponse(content=un_authorization_response_body, status_code=401)
+
+    if authorization_headers[1] != API_CREDENTIAL:
+        return JSONResponse(content=un_authorization_response_body, status_code=401)
 
     try:
         llm_response = chain.predict(input=request_body.message)
