@@ -1,19 +1,19 @@
-import threading
-import queue
 import os
 import json
 import logging
 import uvicorn
-from typing import Dict, List
-
-from fastapi import FastAPI
-from fastapi.responses import StreamingResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-
 from langchain.chat_models import ChatOpenAI
-from langchain.callbacks.manager import CallbackManager
-from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
-from langchain.schema import HumanMessage, SystemMessage
+from langchain.chains import ConversationChain
+from langchain.memory import ConversationTokenBufferMemory
+from langchain.prompts.chat import (
+    ChatPromptTemplate,
+    MessagesPlaceholder,
+    SystemMessagePromptTemplate,
+    HumanMessagePromptTemplate,
+)
 
 
 class JsonFormatter(logging.Formatter):
@@ -35,37 +35,8 @@ app = FastAPI(
     title="AI Cat API",
 )
 
-
-class ThreadedGenerator:
-    def __init__(self):
-        self.queue = queue.Queue()
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        item = self.queue.get()
-        if item is StopIteration:
-            raise item
-        return item
-
-    def send(self, data):
-        self.queue.put(data)
-
-    def close(self):
-        self.queue.put(StopIteration)
-
-
-class ChainStreamHandler(StreamingStdOutCallbackHandler):
-    def __init__(self, gen):
-        super().__init__()
-        self.gen = gen
-
-    def on_llm_new_token(self, token: str, **kwargs):
-        self.gen.send(token)
-
-
 OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
+API_CREDENTIAL = os.environ["API_CREDENTIAL"]
 
 template = """
 あなたは優しいねこのもこです。
@@ -93,66 +64,83 @@ template = """
 * Userに対してはちゃんをつけて呼んでください。
 """
 
-# とりあえず仮でオンメモリで会話履歴を持つ
-user_conversations: Dict[str, List[HumanMessage or SystemMessage]] = {}
+
+def create_conversational_chain():
+    llm = ChatOpenAI(temperature=0.7, openai_api_key=OPENAI_API_KEY)
+
+    memory = ConversationTokenBufferMemory(
+        llm=llm, return_messages=True, max_token_limit=2000
+    )
+
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            SystemMessagePromptTemplate.from_template(template),
+            MessagesPlaceholder(variable_name="history"),
+            HumanMessagePromptTemplate.from_template("{input}"),
+        ]
+    )
+
+    llm_chain = ConversationChain(llm=llm, memory=memory, prompt=prompt, verbose=True)
+
+    return llm_chain
 
 
-def llm_thread(g, user_id, prompt):
-    try:
-        conversation = user_conversations.get(
-            user_id, [SystemMessage(content=template)]
-        )
-
-        conversation.append(HumanMessage(content=prompt))
-
-        user_conversations[user_id] = conversation
-
-        chat_model = ChatOpenAI(
-            verbose=True,
-            streaming=True,
-            callback_manager=CallbackManager([ChainStreamHandler(g)]),
-            openai_api_key=OPENAI_API_KEY,
-            temperature=0.7,
-        )
-        chat_model(conversation)
-    finally:
-        g.close()
+chain = create_conversational_chain()
 
 
-def format_sse(response_body: dict) -> str:
-    json_body = json.dumps(response_body, ensure_ascii=False)
-    sse_message = f"data: {json_body}\n\n"
-    return sse_message
-
-
-def chat(user_id: str, cat_id: str, prompt: str):
-    g = ThreadedGenerator()
-    threading.Thread(target=llm_thread, args=(g, user_id, prompt)).start()
-    for message in g:
-        # TODO idをどうやって生成するかは後で考える
-        yield format_sse(
-            {
-                "id": "xxxxxxxx-xxxxxxxxx-xxxxxxxxxxxxxxxxx",
-                "userId": user_id,
-                "catId": cat_id,
-                "message": message,
-            }
-        )
-
-
-class Message(BaseModel):
+class FetchCatMessagesRequestBody(BaseModel):
     userId: str
     message: str
 
 
-@app.post("/cats/{cat_id}/streaming-messages")
-async def cats_streaming_messages(cat_id: str, message: Message):
+@app.post("/cats/{cat_id}/messages")
+async def cats_messages(
+    request: Request, cat_id: str, request_body: FetchCatMessagesRequestBody
+):
     # TODO cat_id 毎にねこの人格を設定する
     logger.info(cat_id)
+    logger.info(request_body.userId)
 
-    return StreamingResponse(
-        chat(message.userId, cat_id, message.message), media_type="text/event-stream"
-    )
+    authorization = request.headers.get("Authorization", None)
+
+    print(authorization)
+
+    un_authorization_response_body = {
+        "type": "UNAUTHORIZED",
+        "title": "invalid Authorization Header.",
+    }
+
+    if authorization is None:
+        return JSONResponse(content=un_authorization_response_body, status_code=401)
+
+    authorization_headers = authorization.split(" ")
+
+    if len(authorization_headers) != 2 or authorization_headers[0] != "Basic":
+        return JSONResponse(content=un_authorization_response_body, status_code=401)
+
+    if authorization_headers[1] != API_CREDENTIAL:
+        return JSONResponse(content=un_authorization_response_body, status_code=401)
+
+    try:
+        llm_response = chain.predict(input=request_body.message)
+    except Exception as e:
+        logger.error(e)
+
+        error_message = f"An error occurred: {str(e)}"
+        response_body = {
+            "type": "INTERNAL_SERVER_ERROR",
+            "title": "an unexpected error has occurred.",
+            "detail": error_message,
+        }
+        return JSONResponse(content=response_body, status_code=500)
+
+    response_body = {
+        "message": llm_response,
+    }
+
+    response = JSONResponse(content=response_body, status_code=201)
+
+    return response
 
 
 def start():
