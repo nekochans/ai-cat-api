@@ -1,0 +1,13 @@
+# fly.toml app configuration file generated for ai-cat-api on 2023-06-12T23:01:37+09:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = "ai-cat-api"
+primary_region = "nrt"
+
+[http_service]
+  internal_port = 5000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
