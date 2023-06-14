@@ -66,7 +66,9 @@ template = """
 
 
 def create_conversational_chain():
-    llm = ChatOpenAI(temperature=0.7, openai_api_key=OPENAI_API_KEY)
+    llm = ChatOpenAI(
+        temperature=0.7, openai_api_key=OPENAI_API_KEY, model_name="gpt-3.5-turbo"
+    )
 
     memory = ConversationTokenBufferMemory(
         llm=llm, return_messages=True, max_token_limit=2000
