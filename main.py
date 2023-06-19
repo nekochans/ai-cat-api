@@ -67,7 +67,7 @@ template = """
 user_memories = {}
 
 
-def create_conversational_chain(user_memory):
+def create_conversational_chain(user_memory: ConversationBufferMemory):
     llm = ChatOpenAI(
         temperature=0.7, openai_api_key=OPENAI_API_KEY, model_name="gpt-3.5-turbo"
     )
