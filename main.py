@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import ConversationChain
-from langchain.memory import ConversationTokenBufferMemory
+from langchain.memory import ConversationBufferMemory
 from langchain.prompts.chat import (
     ChatPromptTemplate,
     MessagesPlaceholder,
@@ -64,15 +64,15 @@ template = """
 * Userに対してはちゃんをつけて呼んでください。
 """
 
+user_memories = {}
 
-def create_conversational_chain():
+
+def create_conversational_chain(user_memory):
     llm = ChatOpenAI(
         temperature=0.7, openai_api_key=OPENAI_API_KEY, model_name="gpt-3.5-turbo"
     )
 
-    memory = ConversationTokenBufferMemory(
-        llm=llm, return_messages=True, max_token_limit=2000
-    )
+    memory = user_memory
 
     prompt = ChatPromptTemplate.from_messages(
         [
@@ -85,9 +85,6 @@ def create_conversational_chain():
     llm_chain = ConversationChain(llm=llm, memory=memory, prompt=prompt, verbose=True)
 
     return llm_chain
-
-
-chain = create_conversational_chain()
 
 
 class FetchCatMessagesRequestBody(BaseModel):
@@ -124,6 +121,14 @@ async def cats_messages(
         return JSONResponse(content=un_authorization_response_body, status_code=401)
 
     try:
+        user_memory = user_memories.get(
+            request_body.userId,
+            ConversationBufferMemory(memory_key="history", return_messages=True),
+        )
+        user_memories[request_body.userId] = user_memory
+
+        chain = create_conversational_chain(user_memory)
+
         llm_response = chain.predict(input=request_body.message)
     except Exception as e:
         logger.error(e)
