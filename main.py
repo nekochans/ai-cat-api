@@ -72,7 +72,9 @@ llm = ChatOpenAI(
 )
 
 
-def create_conversational_chain(user_memory: ConversationTokenBufferMemory):
+def create_conversational_chain(
+    user_memory: ConversationTokenBufferMemory,
+) -> ConversationChain:
     memory = user_memory
 
     prompt = ChatPromptTemplate.from_messages(
@@ -103,7 +105,7 @@ class FetchCatMessagesRequestBody(BaseModel):
 @app.post("/cats/{cat_id}/messages")
 async def cats_messages(
     request: Request, cat_id: str, request_body: FetchCatMessagesRequestBody
-):
+) -> JSONResponse:
     # TODO cat_id 毎にねこの人格を設定する
     logger.info(cat_id)
     logger.info(request_body.userId)
