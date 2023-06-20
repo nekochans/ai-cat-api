@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import ConversationChain
-from langchain.memory import ConversationBufferMemory
+from langchain.memory import ConversationTokenBufferMemory
 from langchain.prompts.chat import (
     ChatPromptTemplate,
     MessagesPlaceholder,
@@ -66,12 +66,12 @@ template = """
 
 user_memories = {}
 
+llm = ChatOpenAI(
+    temperature=0.7, openai_api_key=OPENAI_API_KEY, model_name="gpt-3.5-turbo"
+)
 
-def create_conversational_chain(user_memory: ConversationBufferMemory):
-    llm = ChatOpenAI(
-        temperature=0.7, openai_api_key=OPENAI_API_KEY, model_name="gpt-3.5-turbo"
-    )
 
+def create_conversational_chain(user_memory: ConversationTokenBufferMemory):
     memory = user_memory
 
     prompt = ChatPromptTemplate.from_messages(
@@ -121,7 +121,12 @@ async def cats_messages(
     try:
         user_memory = user_memories.get(
             request_body.userId,
-            ConversationBufferMemory(memory_key="history", return_messages=True),
+            ConversationTokenBufferMemory(
+                memory_key="history",
+                return_messages=True,
+                llm=llm,
+                max_token_limit=3500,
+            ),
         )
         user_memories[request_body.userId] = user_memory
 
