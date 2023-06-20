@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import uvicorn
+from logging import LogRecord
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -18,7 +19,7 @@ from langchain.callbacks import get_openai_callback
 
 
 class JsonFormatter(logging.Formatter):
-    def format(self, record):
+    def format(self, record: LogRecord) -> str:
         data = record.__dict__.copy()
         data["msg"] = record.getMessage()
         data["args"] = None
