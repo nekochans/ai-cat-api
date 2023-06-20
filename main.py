@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import uvicorn
+from logging import LogRecord
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -14,10 +15,11 @@ from langchain.prompts.chat import (
     SystemMessagePromptTemplate,
     HumanMessagePromptTemplate,
 )
+from langchain.callbacks import get_openai_callback
 
 
 class JsonFormatter(logging.Formatter):
-    def format(self, record):
+    def format(self, record: LogRecord) -> str:
         data = record.__dict__.copy()
         data["msg"] = record.getMessage()
         data["args"] = None
@@ -64,15 +66,17 @@ template = """
 * Userに対してはちゃんをつけて呼んでください。
 """
 
+user_memories = {}
 
-def create_conversational_chain():
-    llm = ChatOpenAI(
-        temperature=0.7, openai_api_key=OPENAI_API_KEY, model_name="gpt-3.5-turbo"
-    )
+llm = ChatOpenAI(
+    temperature=0.7, openai_api_key=OPENAI_API_KEY, model_name="gpt-3.5-turbo"
+)
 
-    memory = ConversationTokenBufferMemory(
-        llm=llm, return_messages=True, max_token_limit=2000
-    )
+
+def create_conversational_chain(
+    user_memory: ConversationTokenBufferMemory,
+) -> ConversationChain:
+    memory = user_memory
 
     prompt = ChatPromptTemplate.from_messages(
         [
@@ -87,7 +91,11 @@ def create_conversational_chain():
     return llm_chain
 
 
-chain = create_conversational_chain()
+def fetch_response_and_token_usage(chain: ConversationChain, prompt: str) -> (int, str):
+    with get_openai_callback() as cb:
+        llm_response = chain.predict(input=prompt)
+        tokens_used = cb.total_tokens
+    return tokens_used, llm_response
 
 
 class FetchCatMessagesRequestBody(BaseModel):
@@ -98,14 +106,12 @@ class FetchCatMessagesRequestBody(BaseModel):
 @app.post("/cats/{cat_id}/messages")
 async def cats_messages(
     request: Request, cat_id: str, request_body: FetchCatMessagesRequestBody
-):
+) -> JSONResponse:
     # TODO cat_id 毎にねこの人格を設定する
     logger.info(cat_id)
     logger.info(request_body.userId)
 
     authorization = request.headers.get("Authorization", None)
-
-    print(authorization)
 
     un_authorization_response_body = {
         "type": "UNAUTHORIZED",
@@ -124,7 +130,23 @@ async def cats_messages(
         return JSONResponse(content=un_authorization_response_body, status_code=401)
 
     try:
-        llm_response = chain.predict(input=request_body.message)
+        user_memory = user_memories.get(
+            request_body.userId,
+            ConversationTokenBufferMemory(
+                memory_key="history",
+                return_messages=True,
+                llm=llm,
+                max_token_limit=3500,
+            ),
+        )
+        user_memories[request_body.userId] = user_memory
+
+        chain = create_conversational_chain(user_memory)
+
+        tokens_used, llm_response = fetch_response_and_token_usage(
+            chain, request_body.message
+        )
+        logger.info(f"OpenAI API Tokens Used is: {tokens_used}")
     except Exception as e:
         logger.error(e)
 
