@@ -102,8 +102,6 @@ async def cats_messages(
 
     authorization = request.headers.get("Authorization", None)
 
-    print(authorization)
-
     un_authorization_response_body = {
         "type": "UNAUTHORIZED",
         "title": "invalid Authorization Header.",
