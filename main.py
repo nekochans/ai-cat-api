@@ -14,6 +14,7 @@ from langchain.prompts.chat import (
     SystemMessagePromptTemplate,
     HumanMessagePromptTemplate,
 )
+from langchain.callbacks import get_openai_callback
 
 
 class JsonFormatter(logging.Formatter):
@@ -87,6 +88,13 @@ def create_conversational_chain(user_memory: ConversationTokenBufferMemory):
     return llm_chain
 
 
+def fetch_response_and_token_usage(chain: ConversationChain, prompt: str) -> (int, str):
+    with get_openai_callback() as cb:
+        llm_response = chain.predict(input=prompt)
+        tokens_used = cb.total_tokens
+    return tokens_used, llm_response
+
+
 class FetchCatMessagesRequestBody(BaseModel):
     userId: str
     message: str
@@ -132,7 +140,10 @@ async def cats_messages(
 
         chain = create_conversational_chain(user_memory)
 
-        llm_response = chain.predict(input=request_body.message)
+        tokens_used, llm_response = fetch_response_and_token_usage(
+            chain, request_body.message
+        )
+        logger.info(f"OpenAI API Tokens Used is: {tokens_used}")
     except Exception as e:
         logger.error(e)
 
