@@ -4,6 +4,9 @@ import logging
 import uvicorn
 import threading
 import queue
+import uuid
+from uuid import UUID
+from dataclasses import dataclass
 from logging import LogRecord
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -244,16 +247,23 @@ def format_sse(response_body: dict) -> str:
     return sse_message
 
 
-def streaming_chat(user_id: str, cat_id: str, input_prompt: str):
+@dataclass(frozen=True)
+class StreamingChatDto:
+    request_id: UUID
+    user_id: str
+    cat_id: str
+    input_prompt: str
+
+
+def streaming_chat(dto: StreamingChatDto):
     g = ThreadedGenerator()
-    threading.Thread(target=llm_thread, args=(g, user_id, input_prompt)).start()
+    threading.Thread(target=llm_thread, args=(g, dto.user_id, dto.input_prompt)).start()
     for message in g:
-        # TODO idをどうやって生成するかは後で考える
         yield format_sse(
             {
-                "id": "xxxxxxxx-xxxxxxxxx-xxxxxxxxxxxxxxxxx",
-                "userId": user_id,
-                "catId": cat_id,
+                "requestId": dto.request_id.hex,
+                "userId": dto.user_id,
+                "catId": dto.cat_id,
                 "message": message,
             }
         )
@@ -266,8 +276,21 @@ async def cats_streaming_messages(
     # TODO cat_id 毎にねこの人格を設定する
     logger.info(cat_id)
 
+    request_id = uuid.uuid4()
+
+    print(request_id)
+
+    logger.info(request_id)
+
+    dto = StreamingChatDto(
+        request_id=request_id,
+        user_id=request_body.userId,
+        cat_id=cat_id,
+        input_prompt=request_body.message,
+    )
+
     return StreamingResponse(
-        streaming_chat(request_body.userId, cat_id, request_body.message),
+        streaming_chat(dto),
         media_type="text/event-stream",
     )
 
