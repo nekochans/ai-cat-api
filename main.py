@@ -248,8 +248,6 @@ def streaming_chat(user_id: str, cat_id: str, input_prompt: str):
     g = ThreadedGenerator()
     threading.Thread(target=llm_thread, args=(g, user_id, input_prompt)).start()
     for message in g:
-        print(message)
-
         # TODO idをどうやって生成するかは後で考える
         yield format_sse(
             {
