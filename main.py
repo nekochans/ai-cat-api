@@ -206,6 +206,7 @@ class ChainStreamHandler(StreamingStdOutCallbackHandler):
 def llm_thread(g, user_id, input_prompt):
     try:
         streaming_llm = ChatOpenAI(
+            model_name="gpt-3.5-turbo-0613",
             verbose=True,
             streaming=True,
             callback_manager=CallbackManager([ChainStreamHandler(g)]),
