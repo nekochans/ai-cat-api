@@ -278,8 +278,6 @@ async def cats_streaming_messages(
 
     request_id = uuid.uuid4()
 
-    print(request_id)
-
     logger.info(request_id)
 
     dto = StreamingChatDto(
