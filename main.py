@@ -269,6 +269,10 @@ def streaming_chat(dto: StreamingChatDto):
         )
 
 
+def generate_error_response(response_body: dict):
+    yield format_sse(response_body)
+
+
 @app.post("/cats/{cat_id}/streaming-messages")
 async def cats_streaming_messages(
     request: Request, cat_id: str, request_body: FetchCatMessagesRequestBody
@@ -279,6 +283,49 @@ async def cats_streaming_messages(
     request_id = uuid.uuid4()
 
     logger.info(request_id)
+
+    authorization = request.headers.get("Authorization", None)
+
+    un_authorization_response_body = {
+        "type": "UNAUTHORIZED",
+        "title": "invalid Authorization Header.",
+        "detail": "Authorization Header is not set.",
+        "requestId": request_id.hex,
+        "userId": request_body.userId,
+        "catId": cat_id,
+    }
+
+    if authorization is None:
+        return StreamingResponse(
+            content=generate_error_response(un_authorization_response_body),
+            media_type="text/event-stream",
+            status_code=401,
+        )
+
+    authorization_headers = authorization.split(" ")
+
+    if len(authorization_headers) != 2 or authorization_headers[0] != "Basic":
+        return StreamingResponse(
+            content=generate_error_response(un_authorization_response_body),
+            media_type="text/event-stream",
+            status_code=401,
+        )
+
+    if authorization_headers[1] != API_CREDENTIAL:
+        un_authorization_response_body = {
+            "type": "UNAUTHORIZED",
+            "title": "invalid Authorization Header.",
+            "detail": "invalid credential.",
+            "requestId": request_id.hex,
+            "userId": request_body.userId,
+            "catId": cat_id,
+        }
+
+        return StreamingResponse(
+            content=generate_error_response(un_authorization_response_body),
+            media_type="text/event-stream",
+            status_code=401,
+        )
 
     dto = StreamingChatDto(
         request_id=request_id,
