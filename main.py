@@ -262,7 +262,7 @@ def streaming_chat(dto: StreamingChatDto):
     for message in g:
         yield format_sse(
             {
-                "requestId": dto.request_id.hex,
+                "requestId": str(dto.request_id),
                 "userId": dto.user_id,
                 "catId": dto.cat_id,
                 "message": message,
@@ -283,7 +283,7 @@ async def cats_streaming_messages(
 
     request_id = uuid.uuid4()
 
-    logger.info(request_id)
+    logger.info(str(request_id))
 
     authorization = request.headers.get("Authorization", None)
 
@@ -291,7 +291,7 @@ async def cats_streaming_messages(
         "type": "UNAUTHORIZED",
         "title": "invalid Authorization Header.",
         "detail": "Authorization Header is not set.",
-        "requestId": request_id.hex,
+        "requestId": str(request_id),
         "userId": request_body.userId,
         "catId": cat_id,
     }
@@ -317,7 +317,7 @@ async def cats_streaming_messages(
             "type": "UNAUTHORIZED",
             "title": "invalid Authorization Header.",
             "detail": "invalid credential.",
-            "requestId": request_id.hex,
+            "requestId": str(request_id),
             "userId": request_body.userId,
             "catId": cat_id,
         }
