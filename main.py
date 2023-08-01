@@ -2,27 +2,12 @@ import os
 import json
 import logging
 import uvicorn
-import threading
-import queue
 import uuid
-from uuid import UUID
-from dataclasses import dataclass
 from logging import LogRecord
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi import FastAPI, Request, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from langchain.chat_models import ChatOpenAI
-from langchain.chains import ConversationChain
-from langchain.memory import ConversationTokenBufferMemory
-from langchain.prompts.chat import (
-    ChatPromptTemplate,
-    MessagesPlaceholder,
-    SystemMessagePromptTemplate,
-    HumanMessagePromptTemplate,
-)
-from langchain.callbacks import get_openai_callback
-from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
-from langchain.callbacks.manager import CallbackManager
+from openai import ChatCompletion
 
 
 class JsonFormatter(logging.Formatter):
@@ -73,173 +58,10 @@ template = """
 * Userに対してはちゃんをつけて呼んでください。
 """
 
-user_memories = {}
-
-llm = ChatOpenAI(
-    temperature=0.7, openai_api_key=OPENAI_API_KEY, model_name="gpt-3.5-turbo-0613"
-)
-
-
-def create_conversational_chain(
-    user_memory: ConversationTokenBufferMemory,
-) -> ConversationChain:
-    memory = user_memory
-
-    prompt = ChatPromptTemplate.from_messages(
-        [
-            SystemMessagePromptTemplate.from_template(template),
-            MessagesPlaceholder(variable_name="history"),
-            HumanMessagePromptTemplate.from_template("{input}"),
-        ]
-    )
-
-    llm_chain = ConversationChain(llm=llm, memory=memory, prompt=prompt, verbose=True)
-
-    return llm_chain
-
-
-def fetch_response_and_token_usage(chain: ConversationChain, prompt: str) -> (int, str):
-    with get_openai_callback() as cb:
-        llm_response = chain.predict(input=prompt)
-        tokens_used = cb.total_tokens
-    return tokens_used, llm_response
-
 
 class FetchCatMessagesRequestBody(BaseModel):
     userId: str
     message: str
-
-
-@app.post("/cats/{cat_id}/messages")
-async def cats_messages(
-    request: Request, cat_id: str, request_body: FetchCatMessagesRequestBody
-) -> JSONResponse:
-    # TODO cat_id 毎にねこの人格を設定する
-    logger.info(cat_id)
-    logger.info(request_body.userId)
-
-    authorization = request.headers.get("Authorization", None)
-
-    un_authorization_response_body = {
-        "type": "UNAUTHORIZED",
-        "title": "invalid Authorization Header.",
-    }
-
-    if authorization is None:
-        return JSONResponse(content=un_authorization_response_body, status_code=401)
-
-    authorization_headers = authorization.split(" ")
-
-    if len(authorization_headers) != 2 or authorization_headers[0] != "Basic":
-        return JSONResponse(content=un_authorization_response_body, status_code=401)
-
-    if authorization_headers[1] != API_CREDENTIAL:
-        return JSONResponse(content=un_authorization_response_body, status_code=401)
-
-    try:
-        user_memory = user_memories.get(
-            request_body.userId,
-            ConversationTokenBufferMemory(
-                memory_key="history",
-                return_messages=True,
-                llm=llm,
-                max_token_limit=3500,
-            ),
-        )
-        user_memories[request_body.userId] = user_memory
-
-        chain = create_conversational_chain(user_memory)
-
-        tokens_used, llm_response = fetch_response_and_token_usage(
-            chain, request_body.message
-        )
-        logger.info(f"OpenAI API Tokens Used is: {tokens_used}")
-    except Exception as e:
-        logger.error(e)
-
-        error_message = f"An error occurred: {str(e)}"
-        response_body = {
-            "type": "INTERNAL_SERVER_ERROR",
-            "title": "an unexpected error has occurred.",
-            "detail": error_message,
-        }
-        return JSONResponse(content=response_body, status_code=500)
-
-    response_body = {
-        "message": llm_response,
-    }
-
-    response = JSONResponse(content=response_body, status_code=201)
-
-    return response
-
-
-class ThreadedGenerator:
-    def __init__(self):
-        self.queue = queue.Queue()
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        item = self.queue.get()
-        if item is StopIteration:
-            raise item
-        return item
-
-    def send(self, data):
-        self.queue.put(data)
-
-    def close(self):
-        self.queue.put(StopIteration)
-
-
-class ChainStreamHandler(StreamingStdOutCallbackHandler):
-    def __init__(self, gen):
-        super().__init__()
-        self.gen = gen
-
-    def on_llm_new_token(self, token: str, **kwargs):
-        self.gen.send(token)
-
-
-def llm_thread(g, user_id, input_prompt):
-    try:
-        streaming_llm = ChatOpenAI(
-            model_name="gpt-3.5-turbo-0613",
-            verbose=True,
-            streaming=True,
-            callback_manager=CallbackManager([ChainStreamHandler(g)]),
-            openai_api_key=OPENAI_API_KEY,
-            temperature=0.7,
-        )
-
-        user_memory = user_memories.get(
-            user_id,
-            ConversationTokenBufferMemory(
-                memory_key="history",
-                return_messages=True,
-                llm=streaming_llm,
-                max_token_limit=3500,
-            ),
-        )
-        user_memories[user_id] = user_memory
-
-        prompt = ChatPromptTemplate.from_messages(
-            [
-                SystemMessagePromptTemplate.from_template(template),
-                MessagesPlaceholder(variable_name="history"),
-                HumanMessagePromptTemplate.from_template("{input}"),
-            ]
-        )
-
-        llm_chain = ConversationChain(
-            llm=streaming_llm, memory=user_memory, prompt=prompt, verbose=True
-        )
-
-        llm_chain.run(input=input_prompt)
-    finally:
-        g.close()
 
 
 def format_sse(response_body: dict) -> str:
@@ -248,33 +70,11 @@ def format_sse(response_body: dict) -> str:
     return sse_message
 
 
-@dataclass(frozen=True)
-class StreamingChatDto:
-    request_id: UUID
-    user_id: str
-    cat_id: str
-    input_prompt: str
-
-
-def streaming_chat(dto: StreamingChatDto):
-    g = ThreadedGenerator()
-    threading.Thread(target=llm_thread, args=(g, dto.user_id, dto.input_prompt)).start()
-    for message in g:
-        yield format_sse(
-            {
-                "requestId": str(dto.request_id),
-                "userId": dto.user_id,
-                "catId": dto.cat_id,
-                "message": message,
-            }
-        )
-
-
 def generate_error_response(response_body: dict):
     yield format_sse(response_body)
 
 
-@app.post("/cats/{cat_id}/streaming-messages")
+@app.post("/cats/{cat_id}/streaming-messages", status_code=status.HTTP_200_OK)
 async def cats_streaming_messages(
     request: Request, cat_id: str, request_body: FetchCatMessagesRequestBody
 ):
@@ -300,7 +100,7 @@ async def cats_streaming_messages(
         return StreamingResponse(
             content=generate_error_response(un_authorization_response_body),
             media_type="text/event-stream",
-            status_code=401,
+            status_code=status.HTTP_401_UNAUTHORIZED,
         )
 
     authorization_headers = authorization.split(" ")
@@ -309,7 +109,7 @@ async def cats_streaming_messages(
         return StreamingResponse(
             content=generate_error_response(un_authorization_response_body),
             media_type="text/event-stream",
-            status_code=401,
+            status_code=status.HTTP_401_UNAUTHORIZED,
         )
 
     if authorization_headers[1] != API_CREDENTIAL:
@@ -325,20 +125,52 @@ async def cats_streaming_messages(
         return StreamingResponse(
             content=generate_error_response(un_authorization_response_body),
             media_type="text/event-stream",
-            status_code=401,
+            status_code=status.HTTP_401_UNAUTHORIZED,
         )
 
-    dto = StreamingChatDto(
-        request_id=request_id,
-        user_id=request_body.userId,
-        cat_id=cat_id,
-        input_prompt=request_body.message,
-    )
+    def event_stream():
+        try:
+            response = ChatCompletion.create(
+                model="gpt-3.5-turbo-0613",
+                messages=[
+                    {"role": "system", "content": template},
+                    {"role": "user", "content": request_body.message},
+                ],
+                stream=True,
+                api_key=OPENAI_API_KEY,
+                temperature=0.7,
+                user=request_body.userId,
+            )
+            for chunk in response:
+                chunk_message = (
+                    chunk.get("choices")[0]["delta"].get("content")
+                    if chunk.get("choices")[0]["delta"].get("content")
+                    else ""
+                )
 
-    return StreamingResponse(
-        streaming_chat(dto),
-        media_type="text/event-stream",
-    )
+                if chunk_message == "":
+                    continue
+
+                chunk_body = {
+                    "id": str(request_id),
+                    "userId": request_body.userId,
+                    "catId": cat_id,
+                    "message": chunk_message,
+                }
+
+                yield format_sse(chunk_body)
+        except Exception as e:
+            logger.error(f"An error occurred while creating the message: {str(e)}")
+
+            error_response_body = {
+                "type": "INTERNAL_SERVER_ERROR",
+                "title": "an unexpected error has occurred.",
+                "detail": str(e),
+            }
+
+            yield format_sse(error_response_body)
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
 def start():
