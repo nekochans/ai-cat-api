@@ -74,6 +74,10 @@ def generate_error_response(response_body: dict):
     yield format_sse(response_body)
 
 
+# ユーザーごとの会話履歴を保存する
+user_conversations = {}
+
+
 @app.post("/cats/{cat_id}/streaming-messages", status_code=status.HTTP_200_OK)
 async def cats_streaming_messages(
     request: Request, cat_id: str, request_body: FetchCatMessagesRequestBody
@@ -128,14 +132,30 @@ async def cats_streaming_messages(
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
 
+    # ユーザーの会話履歴を取得。もしまだ存在しなければ、新しいリストを作成
+    conversation_history = user_conversations.get(request_body.userId, [])
+
+    # もし会話履歴がまだ存在しなければ、システムメッセージを追加
+    if not conversation_history:
+        conversation_history.append({"role": "system", "content": template})
+
+    # 新しいメッセージを会話履歴に追加
+    conversation_history.append({"role": "user", "content": request_body.message})
+
+    # 会話履歴を更新
+    user_conversations[request_body.userId] = conversation_history
+
     def event_stream():
         try:
+            # AIの応答を一時的に保存するためのリスト
+            ai_responses = []
+
+            # AIの応答を結合するための変数
+            ai_response_message = ""
+
             response = ChatCompletion.create(
                 model="gpt-3.5-turbo-0613",
-                messages=[
-                    {"role": "system", "content": template},
-                    {"role": "user", "content": request_body.message},
-                ],
+                messages=conversation_history,
                 stream=True,
                 api_key=OPENAI_API_KEY,
                 temperature=0.7,
@@ -151,6 +171,16 @@ async def cats_streaming_messages(
                 if chunk_message == "":
                     continue
 
+                # AIの応答を更新
+                ai_response_message += chunk_message
+
+                # finish_reasonがstopの場合、AIの応答が完了したとみなして良さそう
+                if chunk.get("choices")[0]["finish_reason"] == "stop":
+                    # AIの応答を一時的なリストに追加
+                    ai_responses.append(
+                        {"role": "assistant", "content": ai_response_message}
+                    )
+
                 chunk_body = {
                     "id": str(request_id),
                     "userId": request_body.userId,
@@ -159,6 +189,28 @@ async def cats_streaming_messages(
                 }
 
                 yield format_sse(chunk_body)
+
+                # finish_reasonがstopの場合、AIの応答が完了したとみなして良さそう
+                if chunk.get("choices")[0]["finish_reason"] == "stop":
+                    # AIの応答を一時的なリストに追加
+                    ai_responses.append(
+                        {"role": "assistant", "content": ai_response_message}
+                    )
+
+                    # AIの応答をリセット
+                    ai_response_message = ""
+
+            # ストリーミングが終了したときに、AIの応答を会話履歴に追加
+            if ai_response_message:
+                ai_responses.append(
+                    {"role": "assistant", "content": ai_response_message}
+                )
+
+            # ストリーミングが終了したときに、AIの応答を会話履歴に追加
+            conversation_history.extend(ai_responses)
+
+            # 会話履歴を更新
+            user_conversations[request_body.userId] = conversation_history
         except Exception as e:
             logger.error(f"An error occurred while creating the message: {str(e)}")
 
