@@ -200,7 +200,7 @@ async def cats_streaming_messages(
                     # AIの応答をリセット
                     ai_response_message = ""
 
-            # ストリーミングが終了したときに、AIの応答を会話履歴に追加
+            # finish_reasonがlength等の場合はこの条件分岐に入る、この場合は途中までのメッセージだが一応履歴に保存しておく
             if ai_response_message:
                 ai_responses.append(
                     {"role": "assistant", "content": ai_response_message}
