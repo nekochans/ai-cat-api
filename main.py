@@ -8,6 +8,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from openai import ChatCompletion
+import tiktoken
 
 
 class JsonFormatter(logging.Formatter):
@@ -78,6 +79,16 @@ def generate_error_response(response_body: dict):
 user_conversations = {}
 
 
+def calculate_token_count(text: str) -> int:
+    tiktoken_encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
+    encoded = tiktoken_encoding.encode(text)
+    return len(encoded)
+
+
+# 最大トークン数
+max_token_limit = 1000
+
+
 @app.post("/cats/{cat_id}/streaming-messages", status_code=status.HTTP_200_OK)
 async def cats_streaming_messages(
     request: Request, cat_id: str, request_body: FetchCatMessagesRequestBody
@@ -145,6 +156,24 @@ async def cats_streaming_messages(
     # 会話履歴を更新
     user_conversations[request_body.userId] = conversation_history
 
+    # 実際に会話履歴に含めるメッセージ
+    messages_for_chat_completion = []
+    total_tokens = 0
+
+    for message in reversed(conversation_history):
+        message_tokens = calculate_token_count(message["content"])
+        if (
+            total_tokens + message_tokens > max_token_limit
+            and messages_for_chat_completion
+        ):
+            # トークン数が最大を超える場合、ループを抜ける
+            break
+        messages_for_chat_completion.insert(0, message)
+        total_tokens += message_tokens
+
+    if not any(message["role"] == "system" for message in messages_for_chat_completion):
+        messages_for_chat_completion.insert(0, {"role": "system", "content": template})
+
     def event_stream():
         try:
             # AIの応答を一時的に保存するためのリスト
@@ -155,7 +184,7 @@ async def cats_streaming_messages(
 
             response = ChatCompletion.create(
                 model="gpt-3.5-turbo-0613",
-                messages=conversation_history,
+                messages=messages_for_chat_completion,
                 stream=True,
                 api_key=OPENAI_API_KEY,
                 temperature=0.7,
