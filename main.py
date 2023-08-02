@@ -9,6 +9,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from openai import ChatCompletion
 
+
 class JsonFormatter(logging.Formatter):
     def format(self, record: LogRecord) -> str:
         data = record.__dict__.copy()
@@ -182,9 +183,7 @@ async def cats_streaming_messages(
 
                 yield format_sse(chunk_body)
 
-            ai_responses.append(
-                {"role": "assistant", "content": ai_response_message}
-            )
+            ai_responses.append({"role": "assistant", "content": ai_response_message})
 
             # ストリーミングが終了したときに、AIの応答を会話履歴に追加
             conversation_history.extend(ai_responses)
