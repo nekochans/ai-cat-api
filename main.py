@@ -9,7 +9,6 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from openai import ChatCompletion
 
-
 class JsonFormatter(logging.Formatter):
     def format(self, record: LogRecord) -> str:
         data = record.__dict__.copy()
@@ -174,13 +173,6 @@ async def cats_streaming_messages(
                 # AIの応答を更新
                 ai_response_message += chunk_message
 
-                # finish_reasonがstopの場合、AIの応答が完了したとみなして良さそう
-                if chunk.get("choices")[0]["finish_reason"] == "stop":
-                    # AIの応答を一時的なリストに追加
-                    ai_responses.append(
-                        {"role": "assistant", "content": ai_response_message}
-                    )
-
                 chunk_body = {
                     "id": str(request_id),
                     "userId": request_body.userId,
@@ -190,21 +182,9 @@ async def cats_streaming_messages(
 
                 yield format_sse(chunk_body)
 
-                # finish_reasonがstopの場合、AIの応答が完了したとみなして良さそう
-                if chunk.get("choices")[0]["finish_reason"] == "stop":
-                    # AIの応答を一時的なリストに追加
-                    ai_responses.append(
-                        {"role": "assistant", "content": ai_response_message}
-                    )
-
-                    # AIの応答をリセット
-                    ai_response_message = ""
-
-            # finish_reasonがlength等の場合はこの条件分岐に入る、この場合は途中までのメッセージだが一応履歴に保存しておく
-            if ai_response_message:
-                ai_responses.append(
-                    {"role": "assistant", "content": ai_response_message}
-                )
+            ai_responses.append(
+                {"role": "assistant", "content": ai_response_message}
+            )
 
             # ストリーミングが終了したときに、AIの応答を会話履歴に追加
             conversation_history.extend(ai_responses)
