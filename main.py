@@ -204,7 +204,7 @@ async def cats_streaming_messages(
                 ai_response_message += chunk_message
 
                 chunk_body = {
-                    "id": str(request_id),
+                    "requestId": str(request_id),
                     "userId": request_body.userId,
                     "catId": cat_id,
                     "message": chunk_message,
