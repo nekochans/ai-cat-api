@@ -174,7 +174,7 @@ async def cats_streaming_messages(
     if not any(message["role"] == "system" for message in messages_for_chat_completion):
         messages_for_chat_completion.insert(0, {"role": "system", "content": template})
 
-    def event_stream():
+    async def event_stream():
         try:
             # AIの応答を一時的に保存するためのリスト
             ai_responses = []
@@ -182,7 +182,7 @@ async def cats_streaming_messages(
             # AIの応答を結合するための変数
             ai_response_message = ""
 
-            response = ChatCompletion.create(
+            response = await ChatCompletion.acreate(
                 model="gpt-3.5-turbo-0613",
                 messages=messages_for_chat_completion,
                 stream=True,
@@ -190,7 +190,7 @@ async def cats_streaming_messages(
                 temperature=0.7,
                 user=request_body.userId,
             )
-            for chunk in response:
+            async for chunk in response:
                 chunk_message = (
                     chunk.get("choices")[0]["delta"].get("content")
                     if chunk.get("choices")[0]["delta"].get("content")
