@@ -6,6 +6,7 @@ import uuid
 from logging import LogRecord
 from fastapi import FastAPI, Request, status
 from fastapi.responses import StreamingResponse
+from typing import Optional
 from pydantic import BaseModel
 from openai import ChatCompletion
 import tiktoken
@@ -63,6 +64,7 @@ template = """
 class FetchCatMessagesRequestBody(BaseModel):
     userId: str
     message: str
+    conversationId: Optional[str] = None
 
 
 def format_sse(response_body: dict) -> str:
@@ -93,12 +95,13 @@ max_token_limit = 1000
 async def cats_streaming_messages(
     request: Request, cat_id: str, request_body: FetchCatMessagesRequestBody
 ):
-    # TODO cat_id 毎にねこの人格を設定する
-    logger.info(cat_id)
+    unique_id = uuid.uuid4()
 
-    request_id = uuid.uuid4()
-
-    logger.info(str(request_id))
+    conversation_id = (
+        str(unique_id)
+        if request_body.conversationId is None
+        else request_body.conversationId
+    )
 
     authorization = request.headers.get("Authorization", None)
 
@@ -106,7 +109,6 @@ async def cats_streaming_messages(
         "type": "UNAUTHORIZED",
         "title": "invalid Authorization Header.",
         "detail": "Authorization Header is not set.",
-        "requestId": str(request_id),
         "userId": request_body.userId,
         "catId": cat_id,
     }
@@ -132,7 +134,6 @@ async def cats_streaming_messages(
             "type": "UNAUTHORIZED",
             "title": "invalid Authorization Header.",
             "detail": "invalid credential.",
-            "requestId": str(request_id),
             "userId": request_body.userId,
             "catId": cat_id,
         }
@@ -144,7 +145,7 @@ async def cats_streaming_messages(
         )
 
     # ユーザーの会話履歴を取得。もしまだ存在しなければ、新しいリストを作成
-    conversation_history = user_conversations.get(request_body.userId, [])
+    conversation_history = user_conversations.get(conversation_id, [])
 
     # もし会話履歴がまだ存在しなければ、システムメッセージを追加
     if not conversation_history:
@@ -154,7 +155,7 @@ async def cats_streaming_messages(
     conversation_history.append({"role": "user", "content": request_body.message})
 
     # 会話履歴を更新
-    user_conversations[request_body.userId] = conversation_history
+    user_conversations[conversation_id] = conversation_history
 
     # 実際に会話履歴に含めるメッセージ
     messages_for_chat_completion = []
@@ -204,7 +205,7 @@ async def cats_streaming_messages(
                 ai_response_message += chunk_message
 
                 chunk_body = {
-                    "requestId": str(request_id),
+                    "conversationId": conversation_id,
                     "userId": request_body.userId,
                     "catId": cat_id,
                     "message": chunk_message,
@@ -218,7 +219,7 @@ async def cats_streaming_messages(
             conversation_history.extend(ai_responses)
 
             # 会話履歴を更新
-            user_conversations[request_body.userId] = conversation_history
+            user_conversations[conversation_id] = conversation_history
         except Exception as e:
             logger.error(f"An error occurred while creating the message: {str(e)}")
 
