@@ -1,31 +1,14 @@
 import os
 import json
-import logging
 import uvicorn
 import uuid
-from logging import LogRecord
 from fastapi import FastAPI, Request, status
 from fastapi.responses import StreamingResponse
 from typing import Optional
 from pydantic import BaseModel
 from openai import ChatCompletion
 import tiktoken
-
-
-class JsonFormatter(logging.Formatter):
-    def format(self, record: LogRecord) -> str:
-        data = record.__dict__.copy()
-        data["msg"] = record.getMessage()
-        data["args"] = None
-        return json.dumps(data)
-
-
-handler = logging.StreamHandler()
-handler.setFormatter(JsonFormatter())
-
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-logger.addHandler(handler)
+from logger import logger
 
 app = FastAPI(
     title="AI Cat API",
@@ -112,6 +95,8 @@ async def cats_streaming_messages(
         "userId": request_body.userId,
         "catId": cat_id,
     }
+
+    logger.info("Cat", extra={"catcat": "catcatmokomokomoko"})
 
     if authorization is None:
         return StreamingResponse(
@@ -221,7 +206,9 @@ async def cats_streaming_messages(
             # 会話履歴を更新
             user_conversations[conversation_id] = conversation_history
         except Exception as e:
-            logger.error(f"An error occurred while creating the message: {str(e)}")
+            logger.error(
+                f"An error occurred while creating the message: {str(e)}", exc_info=True
+            )
 
             error_response_body = {
                 "type": "INTERNAL_SERVER_ERROR",
