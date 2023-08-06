@@ -9,3 +9,6 @@ format:
 ci:
 	poetry run flake8 .
 	poetry run black --check .
+
+run:
+	python src/main.py
