@@ -96,8 +96,6 @@ async def cats_streaming_messages(
         "catId": cat_id,
     }
 
-    logger.info("Cat", extra={"catcat": "catcatmokomokomoko"})
-
     if authorization is None:
         return StreamingResponse(
             content=generate_error_response(un_authorization_response_body),
@@ -176,12 +174,17 @@ async def cats_streaming_messages(
                 temperature=0.7,
                 user=request_body.userId,
             )
+
+            ai_response_id = ""
             async for chunk in response:
                 chunk_message = (
                     chunk.get("choices")[0]["delta"].get("content")
                     if chunk.get("choices")[0]["delta"].get("content")
                     else ""
                 )
+
+                if ai_response_id == "":
+                    ai_response_id = chunk.get("id")
 
                 if chunk_message == "":
                     continue
@@ -205,9 +208,26 @@ async def cats_streaming_messages(
 
             # 会話履歴を更新
             user_conversations[conversation_id] = conversation_history
+
+            logger.info(
+                "success",
+                extra={
+                    "conversation_id": conversation_id,
+                    "user_id": request_body.userId,
+                    "user_message": request_body.message,
+                    "ai_response_id": ai_response_id,
+                    "ai_message": ai_response_message,
+                },
+            )
         except Exception as e:
             logger.error(
-                f"An error occurred while creating the message: {str(e)}", exc_info=True
+                f"An error occurred while creating the message: {str(e)}",
+                exc_info=True,
+                extra={
+                    "conversation_id": conversation_id,
+                    "user_id": request_body.userId,
+                    "user_message": request_body.message,
+                },
             )
 
             error_response_body = {
