@@ -86,6 +86,8 @@ async def cats_streaming_messages(
         else request_body.conversationId
     )
 
+    response_headers = {"Ai-Meow-Cat-Request-Id": str(unique_id)}
+
     authorization = request.headers.get("Authorization", None)
 
     un_authorization_response_body = {
@@ -101,6 +103,7 @@ async def cats_streaming_messages(
             content=generate_error_response(un_authorization_response_body),
             media_type="text/event-stream",
             status_code=status.HTTP_401_UNAUTHORIZED,
+            headers=response_headers,
         )
 
     authorization_headers = authorization.split(" ")
@@ -110,6 +113,7 @@ async def cats_streaming_messages(
             content=generate_error_response(un_authorization_response_body),
             media_type="text/event-stream",
             status_code=status.HTTP_401_UNAUTHORIZED,
+            headers=response_headers,
         )
 
     if authorization_headers[1] != API_CREDENTIAL:
@@ -125,6 +129,7 @@ async def cats_streaming_messages(
             content=generate_error_response(un_authorization_response_body),
             media_type="text/event-stream",
             status_code=status.HTTP_401_UNAUTHORIZED,
+            headers=response_headers,
         )
 
     # ユーザーの会話履歴を取得。もしまだ存在しなければ、新しいリストを作成
@@ -212,6 +217,7 @@ async def cats_streaming_messages(
             logger.info(
                 "success",
                 extra={
+                    "request_id": response_headers.get("Ai-Meow-Cat-Request-Id"),
                     "conversation_id": conversation_id,
                     "user_id": request_body.userId,
                     "user_message": request_body.message,
@@ -238,7 +244,9 @@ async def cats_streaming_messages(
 
             yield format_sse(error_response_body)
 
-    return StreamingResponse(event_stream(), media_type="text/event-stream")
+    return StreamingResponse(
+        event_stream(), media_type="text/event-stream", headers=response_headers
+    )
 
 
 def start():
