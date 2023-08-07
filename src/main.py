@@ -8,7 +8,7 @@ from typing import Optional
 from pydantic import BaseModel
 from openai import ChatCompletion
 import tiktoken
-from logger import logger
+from infrastructure.logger import logger
 
 app = FastAPI(
     title="AI Cat API",
