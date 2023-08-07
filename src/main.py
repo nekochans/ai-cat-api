@@ -219,6 +219,7 @@ async def cats_streaming_messages(
                 extra={
                     "request_id": response_headers.get("Ai-Meow-Cat-Request-Id"),
                     "conversation_id": conversation_id,
+                    "cat_id": cat_id,
                     "user_id": request_body.userId,
                     "user_message": request_body.message,
                     "ai_response_id": ai_response_id,
@@ -231,6 +232,7 @@ async def cats_streaming_messages(
                 exc_info=True,
                 extra={
                     "conversation_id": conversation_id,
+                    "cat_id": cat_id,
                     "user_id": request_body.userId,
                     "user_message": request_body.message,
                 },
