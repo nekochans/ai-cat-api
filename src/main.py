@@ -77,7 +77,7 @@ max_token_limit = 1000
 @app.post("/cats/{cat_id}/streaming-messages", status_code=status.HTTP_200_OK)
 async def cats_streaming_messages(
     request: Request, cat_id: str, request_body: FetchCatMessagesRequestBody
-):
+) -> StreamingResponse:
     unique_id = uuid.uuid4()
 
     conversation_id = (
