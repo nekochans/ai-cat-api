@@ -1,6 +1,6 @@
 FROM python:3.11.3-slim
 
-WORKDIR /app
+WORKDIR /src
 
 COPY pyproject.toml poetry.lock ./
 
@@ -10,7 +10,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 RUN poetry config virtualenvs.create false && \
   poetry install --no-interaction --no-ansi --no-root
 
-COPY . .
+COPY ./src/ .
 
 EXPOSE 5000
 
