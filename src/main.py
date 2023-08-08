@@ -1,35 +1,22 @@
 import os
 import json
-import logging
 import uvicorn
 import uuid
-from logging import LogRecord
 from fastapi import FastAPI, Request, status
 from fastapi.responses import StreamingResponse
 from typing import Optional
 from pydantic import BaseModel
 from openai import ChatCompletion
 import tiktoken
-
-
-class JsonFormatter(logging.Formatter):
-    def format(self, record: LogRecord) -> str:
-        data = record.__dict__.copy()
-        data["msg"] = record.getMessage()
-        data["args"] = None
-        return json.dumps(data)
-
-
-handler = logging.StreamHandler()
-handler.setFormatter(JsonFormatter())
-
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-logger.addHandler(handler)
+from infrastructure.logger import AppLogger, SuccessLogExtra, ErrorLogExtra
 
 app = FastAPI(
     title="AI Cat API",
 )
+
+app_logger = AppLogger()
+
+logger = app_logger.logger
 
 OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 API_CREDENTIAL = os.environ["API_CREDENTIAL"]
@@ -94,7 +81,7 @@ max_token_limit = 1000
 @app.post("/cats/{cat_id}/streaming-messages", status_code=status.HTTP_200_OK)
 async def cats_streaming_messages(
     request: Request, cat_id: str, request_body: FetchCatMessagesRequestBody
-):
+) -> StreamingResponse:
     unique_id = uuid.uuid4()
 
     conversation_id = (
@@ -102,6 +89,8 @@ async def cats_streaming_messages(
         if request_body.conversationId is None
         else request_body.conversationId
     )
+
+    response_headers = {"Ai-Meow-Cat-Request-Id": str(unique_id)}
 
     authorization = request.headers.get("Authorization", None)
 
@@ -118,6 +107,7 @@ async def cats_streaming_messages(
             content=generate_error_response(un_authorization_response_body),
             media_type="text/event-stream",
             status_code=status.HTTP_401_UNAUTHORIZED,
+            headers=response_headers,
         )
 
     authorization_headers = authorization.split(" ")
@@ -127,6 +117,7 @@ async def cats_streaming_messages(
             content=generate_error_response(un_authorization_response_body),
             media_type="text/event-stream",
             status_code=status.HTTP_401_UNAUTHORIZED,
+            headers=response_headers,
         )
 
     if authorization_headers[1] != API_CREDENTIAL:
@@ -142,6 +133,7 @@ async def cats_streaming_messages(
             content=generate_error_response(un_authorization_response_body),
             media_type="text/event-stream",
             status_code=status.HTTP_401_UNAUTHORIZED,
+            headers=response_headers,
         )
 
     # ユーザーの会話履歴を取得。もしまだ存在しなければ、新しいリストを作成
@@ -191,12 +183,17 @@ async def cats_streaming_messages(
                 temperature=0.7,
                 user=request_body.userId,
             )
+
+            ai_response_id = ""
             async for chunk in response:
                 chunk_message = (
                     chunk.get("choices")[0]["delta"].get("content")
                     if chunk.get("choices")[0]["delta"].get("content")
                     else ""
                 )
+
+                if ai_response_id == "":
+                    ai_response_id = chunk.get("id")
 
                 if chunk_message == "":
                     continue
@@ -220,8 +217,35 @@ async def cats_streaming_messages(
 
             # 会話履歴を更新
             user_conversations[conversation_id] = conversation_history
+
+            extra = SuccessLogExtra(
+                request_id=response_headers.get("Ai-Meow-Cat-Request-Id"),
+                conversation_id=conversation_id,
+                cat_id=cat_id,
+                user_id=request_body.userId,
+                user_message=request_body.message,
+                ai_response_id=ai_response_id,
+                ai_message=ai_response_message,
+            )
+
+            logger.info(
+                "success",
+                extra=extra.dict(),
+            )
         except Exception as e:
-            logger.error(f"An error occurred while creating the message: {str(e)}")
+            extra = ErrorLogExtra(
+                request_id=response_headers.get("Ai-Meow-Cat-Request-Id"),
+                conversation_id=conversation_id,
+                cat_id=cat_id,
+                user_id=request_body.userId,
+                user_message=request_body.message,
+            )
+
+            logger.error(
+                f"An error occurred while creating the message: {str(e)}",
+                exc_info=True,
+                extra=extra.dict(),
+            )
 
             error_response_body = {
                 "type": "INTERNAL_SERVER_ERROR",
@@ -231,7 +255,9 @@ async def cats_streaming_messages(
 
             yield format_sse(error_response_body)
 
-    return StreamingResponse(event_stream(), media_type="text/event-stream")
+    return StreamingResponse(
+        event_stream(), media_type="text/event-stream", headers=response_headers
+    )
 
 
 def start():
