@@ -41,7 +41,6 @@ class AppLogger:
     def __init__(self, level: LogLevel = INFO) -> None:
         self._logger = getLogger()
         self._logger.setLevel(level)
-        # self._logger.propagate = False
 
         for handler in self._logger.handlers[:]:
             self._logger.removeHandler(handler)
