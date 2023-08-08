@@ -8,11 +8,15 @@ from typing import Optional
 from pydantic import BaseModel
 from openai import ChatCompletion
 import tiktoken
-from infrastructure.logger import logger
+from infrastructure.logger import AppLogger, SuccessLogExtra, ErrorLogExtra
 
 app = FastAPI(
     title="AI Cat API",
 )
+
+app_logger = AppLogger()
+
+logger = app_logger.logger
 
 OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 API_CREDENTIAL = os.environ["API_CREDENTIAL"]
@@ -214,29 +218,33 @@ async def cats_streaming_messages(
             # 会話履歴を更新
             user_conversations[conversation_id] = conversation_history
 
+            extra = SuccessLogExtra(
+                request_id=response_headers.get("Ai-Meow-Cat-Request-Id"),
+                conversation_id=conversation_id,
+                cat_id=cat_id,
+                user_id=request_body.userId,
+                user_message=request_body.message,
+                ai_response_id=ai_response_id,
+                ai_message=ai_response_message,
+            )
+
             logger.info(
                 "success",
-                extra={
-                    "request_id": response_headers.get("Ai-Meow-Cat-Request-Id"),
-                    "conversation_id": conversation_id,
-                    "cat_id": cat_id,
-                    "user_id": request_body.userId,
-                    "user_message": request_body.message,
-                    "ai_response_id": ai_response_id,
-                    "ai_message": ai_response_message,
-                },
+                extra=extra.dict(),
             )
         except Exception as e:
+            extra = ErrorLogExtra(
+                request_id=response_headers.get("Ai-Meow-Cat-Request-Id"),
+                conversation_id=conversation_id,
+                cat_id=cat_id,
+                user_id=request_body.userId,
+                user_message=request_body.message,
+            )
+
             logger.error(
                 f"An error occurred while creating the message: {str(e)}",
                 exc_info=True,
-                extra={
-                    "request_id": response_headers.get("Ai-Meow-Cat-Request-Id"),
-                    "conversation_id": conversation_id,
-                    "cat_id": cat_id,
-                    "user_id": request_body.userId,
-                    "user_message": request_body.message,
-                },
+                extra=extra.dict(),
             )
 
             error_response_body = {
