@@ -6,7 +6,6 @@ class JsonFormatter(Formatter):
     def format(self, record: LogRecord) -> str:
         try:
             data = record.__dict__.copy()
-            # data = vars(record)
             exc_info = data.pop("exc_info")
             if exc_info:
                 data["traceback"] = self.formatException(exc_info).splitlines()
