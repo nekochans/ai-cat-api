@@ -231,6 +231,7 @@ async def cats_streaming_messages(
                 f"An error occurred while creating the message: {str(e)}",
                 exc_info=True,
                 extra={
+                    "request_id": response_headers.get("Ai-Meow-Cat-Request-Id"),
                     "conversation_id": conversation_id,
                     "cat_id": cat_id,
                     "user_id": request_body.userId,
