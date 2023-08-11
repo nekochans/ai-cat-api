@@ -230,7 +230,7 @@ async def cats_streaming_messages(
 
             logger.info(
                 "success",
-                extra=extra.dict(),
+                extra=extra.model_dump(),
             )
         except Exception as e:
             extra = ErrorLogExtra(
@@ -244,7 +244,7 @@ async def cats_streaming_messages(
             logger.error(
                 f"An error occurred while creating the message: {str(e)}",
                 exc_info=True,
-                extra=extra.dict(),
+                extra=extra.model_dump(),
             )
 
             error_response_body = {
