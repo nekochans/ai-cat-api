@@ -7,10 +7,11 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import StreamingResponse, JSONResponse
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from openai import ChatCompletion
 import tiktoken
 from infrastructure.logger import AppLogger, SuccessLogExtra, ErrorLogExtra
+from domain.unique_id import is_uuid_v4_format
 
 app = FastAPI(
     title="AI Cat API",
@@ -54,6 +55,13 @@ class FetchCatMessagesRequestBody(BaseModel):
     userId: str
     message: str
     conversationId: Optional[str] = None
+
+    @field_validator("userId")
+    @classmethod
+    def user_id(cls, v: str) -> str:
+        if not is_uuid_v4_format(v):
+            raise ValueError(f"'{v}' is not UUIDv4 Format")
+        return v.title()
 
 
 def format_sse(response_body: dict) -> str:
