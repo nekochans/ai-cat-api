@@ -94,13 +94,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
     errors = exc.errors()
 
-    detail = ""
-
     for error in errors:
-        user_input = "null" if error["input"] is None else error["input"]
-
-        detail = f"Your request parameter is {user_input}"
-
         invalid_params.append({"name": error["loc"][1], "reason": error["msg"]})
 
     return JSONResponse(
@@ -109,7 +103,6 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
             {
                 "type": "UNPROCESSABLE_ENTITY",
                 "title": "validation Error.",
-                "detail": detail,
                 "invalidParams": invalid_params,
             }
         ),
