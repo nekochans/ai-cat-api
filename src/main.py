@@ -3,7 +3,9 @@ import json
 import uvicorn
 import uuid
 from fastapi import FastAPI, Request, status
-from fastapi.responses import StreamingResponse
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import StreamingResponse, JSONResponse
 from typing import Optional
 from pydantic import BaseModel
 from openai import ChatCompletion
@@ -76,6 +78,34 @@ def calculate_token_count(text: str) -> int:
 
 # 最大トークン数
 max_token_limit = 1000
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    invalid_params = []
+
+    errors = exc.errors()
+
+    detail = ""
+
+    for error in errors:
+        user_input = "null" if error["input"] is None else error["input"]
+
+        detail = f"Your request parameter is {user_input}"
+
+        invalid_params.append({"name": error["loc"][1], "reason": error["msg"]})
+
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content=jsonable_encoder(
+            {
+                "type": "UNPROCESSABLE_ENTITY",
+                "title": "validation Error.",
+                "detail": detail,
+                "invalidParams": invalid_params,
+            }
+        ),
+    )
 
 
 @app.post("/cats/{cat_id}/streaming-messages", status_code=status.HTTP_200_OK)
