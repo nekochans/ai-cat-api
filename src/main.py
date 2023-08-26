@@ -11,7 +11,7 @@ from pydantic import BaseModel, field_validator
 from openai import ChatCompletion
 import tiktoken
 from infrastructure.logger import AppLogger, SuccessLogExtra, ErrorLogExtra
-from domain.unique_id import is_uuid_v4_format
+from domain.unique_id import is_uuid_format
 
 app = FastAPI(
     title="AI Cat API",
@@ -59,9 +59,9 @@ class FetchCatMessagesRequestBody(BaseModel):
     @field_validator("userId")
     @classmethod
     def user_id(cls, v: str) -> str:
-        if not is_uuid_v4_format(v):
-            raise ValueError(f"'{v}' is not UUIDv4 Format")
-        return v.title()
+        if not is_uuid_format(v):
+            raise ValueError(f"'{v}' is not in UUID format")
+        return v
 
 
 def format_sse(response_body: dict) -> str:
