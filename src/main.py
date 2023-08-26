@@ -12,6 +12,7 @@ from openai import ChatCompletion
 import tiktoken
 from infrastructure.logger import AppLogger, SuccessLogExtra, ErrorLogExtra
 from domain.unique_id import is_uuid_format
+from domain.message import is_message
 
 app = FastAPI(
     title="AI Cat API",
@@ -58,9 +59,18 @@ class FetchCatMessagesRequestBody(BaseModel):
 
     @field_validator("userId")
     @classmethod
-    def user_id(cls, v: str) -> str:
+    def validate_user_id(cls, v: str) -> str:
         if not is_uuid_format(v):
             raise ValueError(f"'{v}' is not in UUID format")
+        return v
+
+    @field_validator("message")
+    @classmethod
+    def validate_message(cls, v: str) -> str:
+        if not is_message(v):
+            raise ValueError(
+                "message must be at least 2 character and no more than 5,000 characters"
+            )
         return v
 
 
