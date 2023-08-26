@@ -57,9 +57,9 @@ class FetchCatMessagesRequestBody(BaseModel):
     message: str
     conversationId: Optional[str] = None
 
-    @field_validator("userId")
+    @field_validator("userId", "conversationId")
     @classmethod
-    def validate_user_id(cls, v: str) -> str:
+    def validate_uuid(cls, v: str) -> str:
         if not is_uuid_format(v):
             raise ValueError(f"'{v}' is not in UUID format")
         return v
