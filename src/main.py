@@ -3,12 +3,16 @@ import json
 import uvicorn
 import uuid
 from fastapi import FastAPI, Request, status
-from fastapi.responses import StreamingResponse
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import StreamingResponse, JSONResponse
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from openai import ChatCompletion
 import tiktoken
 from infrastructure.logger import AppLogger, SuccessLogExtra, ErrorLogExtra
+from domain.unique_id import is_uuid_format
+from domain.message import is_message
 
 app = FastAPI(
     title="AI Cat API",
@@ -53,6 +57,22 @@ class FetchCatMessagesRequestBody(BaseModel):
     message: str
     conversationId: Optional[str] = None
 
+    @field_validator("userId", "conversationId")
+    @classmethod
+    def validate_uuid(cls, v: str) -> str:
+        if not is_uuid_format(v):
+            raise ValueError(f"'{v}' is not in UUID format")
+        return v
+
+    @field_validator("message")
+    @classmethod
+    def validate_message(cls, v: str) -> str:
+        if not is_message(v):
+            raise ValueError(
+                "message must be at least 2 character and no more than 5,000 characters"
+            )
+        return v
+
 
 def format_sse(response_body: dict) -> str:
     json_body = json.dumps(response_body, ensure_ascii=False)
@@ -76,6 +96,27 @@ def calculate_token_count(text: str) -> int:
 
 # 最大トークン数
 max_token_limit = 1000
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    invalid_params = []
+
+    errors = exc.errors()
+
+    for error in errors:
+        invalid_params.append({"name": error["loc"][1], "reason": error["msg"]})
+
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content=jsonable_encoder(
+            {
+                "type": "UNPROCESSABLE_ENTITY",
+                "title": "validation Error.",
+                "invalidParams": invalid_params,
+            }
+        ),
+    )
 
 
 @app.post("/cats/{cat_id}/streaming-messages", status_code=status.HTTP_200_OK)
