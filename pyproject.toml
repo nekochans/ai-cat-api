@@ -17,8 +17,8 @@ openai = "^0.27.6"
 flake8 = "^6.0.0"
 black = "^23.3.0"
 tiktoken = "^0.4.0"
-sqlalchemy = "^2.0.20"
-mysql-connector-python = "^8.1.0"
+asyncio = "^3.4.3"
+aiomysql = "^0.2.0"
 
 [build-system]
 requires = ["poetry-core"]

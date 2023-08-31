@@ -2,7 +2,7 @@ import os
 import json
 import uvicorn
 import uuid
-from fastapi import FastAPI, Request, status, Depends
+from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import StreamingResponse, JSONResponse
@@ -11,13 +11,9 @@ from pydantic import BaseModel, field_validator
 from openai import ChatCompletion
 import tiktoken
 from infrastructure.logger import AppLogger, SuccessLogExtra, ErrorLogExtra
-from infrastructure.db import create_db, SessionLocal
-from infrastructure.repository.guest_users_conversation_histories import (
-    GuestUsersConversationHistory,
-)
+from infrastructure.db import create_db_connection
 from domain.unique_id import is_uuid_format
 from domain.message import is_message
-
 
 app = FastAPI(
     title="AI Cat API",
@@ -308,9 +304,7 @@ async def cats_streaming_messages(
 
 # TODO テスト用のエンドポイントなので後で削除します
 @app.get("/conversations/{conversation_id}")
-async def find_conversation(
-    request: Request, conversation_id: str, db: SessionLocal = Depends(create_db)
-):
+async def find_conversation(request: Request, conversation_id: str):
     authorization = request.headers.get("Authorization", None)
 
     un_authorization_response_body = {
@@ -344,36 +338,68 @@ async def find_conversation(
             content=un_authorization_response_body,
         )
 
-    conversation = (
-        db.query(GuestUsersConversationHistory)
-        .filter(GuestUsersConversationHistory.conversation_id == conversation_id)
-        .first()
-    )
+    try:
+        connection = await create_db_connection()
+    except Exception as e:
+        error_response_body = {
+            "type": "INTERNAL_SERVER_ERROR",
+            "title": "an unexpected error has occurred.",
+            "detail": str(e),
+        }
 
-    if conversation:
-        body = {
-            "id": conversation.id,
-            "conversation_id": conversation.conversation_id,
-            "cat_id": conversation.cat_id,
-            "user_id": conversation.user_id,
-            "user_message": conversation.user_message.decode("utf-8"),
-            "ai_message": conversation.ai_message.decode("utf-8"),
+        return JSONResponse(
+            status_code=status.HTTP_201_CREATED,
+            content=error_response_body,
+        )
+
+    try:
+        async with connection.cursor() as cursor:
+            sql = """
+            SELECT * FROM guest_users_conversation_histories
+            WHERE conversation_id = %s
+            """
+            await cursor.execute(sql, (conversation_id,))
+            result = await cursor.fetchone()
+
+            if result is None:
+                not_found_response_body = {
+                    "type": "NOT_FOUND",
+                    "title": "conversation is not found.",
+                }
+
+                return JSONResponse(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    content=not_found_response_body,
+                )
+
+            body = {
+                "id": result["id"],
+                "conversation_id": result["conversation_id"],
+                "cat_id": result["cat_id"],
+                "user_id": result["user_id"],
+                "user_message": result["user_message"],
+                "ai_message": result["ai_message"],
+            }
+
+            return JSONResponse(
+                status_code=status.HTTP_201_CREATED,
+                content=body,
+            )
+    except Exception as e:
+        await connection.rollback()
+
+        error_response_body = {
+            "type": "INTERNAL_SERVER_ERROR",
+            "title": "an unexpected error has occurred.",
+            "detail": str(e),
         }
 
         return JSONResponse(
             status_code=status.HTTP_200_OK,
-            content=body,
+            content=error_response_body,
         )
-
-    not_found_response_body = {
-        "type": "NOT_FOUND",
-        "title": "conversation is not found.",
-    }
-
-    return JSONResponse(
-        status_code=status.HTTP_404_NOT_FOUND,
-        content=not_found_response_body,
-    )
+    finally:
+        connection.close()
 
 
 # TODO テスト用のエンドポイントなので後で削除します
@@ -389,7 +415,6 @@ class CreateConversationRequestBody(BaseModel):
 async def create_conversation(
     request: Request,
     request_body: CreateConversationRequestBody,
-    db: SessionLocal = Depends(create_db),
 ):
     authorization = request.headers.get("Authorization", None)
 
@@ -426,29 +451,73 @@ async def create_conversation(
 
     unique_id = uuid.uuid4()
 
-    new_conversation = GuestUsersConversationHistory(
-        conversation_id=str(unique_id),
-        cat_id=request_body.cat_id,
-        user_id=request_body.user_id,
-        user_message=request_body.user_message,
-        ai_message=request_body.ai_message,
-    )
-    db.add(new_conversation)
-    db.commit()
+    try:
+        connection = await create_db_connection()
+    except Exception as e:
+        error_response_body = {
+            "type": "INTERNAL_SERVER_ERROR",
+            "title": "an unexpected error has occurred.",
+            "detail": str(e),
+        }
 
-    body = {
-        "id": new_conversation.id,
-        "conversation_id": new_conversation.conversation_id,
-        "cat_id": new_conversation.cat_id,
-        "user_id": new_conversation.user_id,
-        "user_message": new_conversation.user_message.decode("utf-8"),
-        "ai_message": new_conversation.ai_message.decode("utf-8"),
-    }
+        return JSONResponse(
+            status_code=status.HTTP_201_CREATED,
+            content=error_response_body,
+        )
 
-    return JSONResponse(
-        status_code=status.HTTP_201_CREATED,
-        content=body,
-    )
+    try:
+        await connection.begin()
+
+        async with connection.cursor() as cursor:
+            sql = """
+            INSERT INTO guest_users_conversation_histories
+            (conversation_id, cat_id, user_id, user_message, ai_message)
+            VALUES (%s, %s, %s, %s, %s)
+            """
+            await cursor.execute(
+                sql,
+                (
+                    str(unique_id),
+                    request_body.cat_id,
+                    request_body.user_id,
+                    request_body.user_message,
+                    request_body.ai_message,
+                ),
+            )
+
+            await cursor.execute("SELECT LAST_INSERT_ID()")
+            fetch_result = await cursor.fetchone()
+
+        body = {
+            "id": fetch_result["LAST_INSERT_ID()"],
+            "conversation_id": str(unique_id),
+            "cat_id": request_body.cat_id,
+            "user_id": request_body.user_id,
+            "user_message": request_body.user_message,
+            "ai_message": request_body.ai_message,
+        }
+
+        await connection.commit()
+
+        return JSONResponse(
+            status_code=status.HTTP_201_CREATED,
+            content=body,
+        )
+    except Exception as e:
+        await connection.rollback()
+
+        error_response_body = {
+            "type": "INTERNAL_SERVER_ERROR",
+            "title": "an unexpected error has occurred.",
+            "detail": str(e),
+        }
+
+        return JSONResponse(
+            status_code=status.HTTP_201_CREATED,
+            content=error_response_body,
+        )
+    finally:
+        connection.close()
 
 
 def start():

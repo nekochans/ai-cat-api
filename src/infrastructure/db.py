@@ -1,24 +1,25 @@
 import os
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, scoped_session, DeclarativeBase
+import ssl
+import asyncio
+import aiomysql
+from aiomysql import Connection
+
+ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+ctx.load_verify_locations(cafile=os.getenv("SSL_CERT_PATH"))
 
 
-DATABASE_URL = os.environ["DATABASE_URL"]
+async def create_db_connection() -> Connection:
+    loop = asyncio.get_event_loop()
 
-engine = create_engine(DATABASE_URL)
+    connection = await aiomysql.connect(
+        host=os.getenv("DB_HOST"),
+        port=3306,
+        user=os.getenv("DB_USERNAME"),
+        password=os.getenv("DB_PASSWORD"),
+        db=os.getenv("DB_NAME"),
+        loop=loop,
+        cursorclass=aiomysql.DictCursor,
+        ssl=ctx,
+    )
 
-SessionLocal = scoped_session(
-    sessionmaker(autocommit=False, autoflush=False, bind=engine)
-)
-
-
-class Base(DeclarativeBase):
-    pass
-
-
-def create_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    return connection
