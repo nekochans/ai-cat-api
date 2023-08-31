@@ -2,7 +2,7 @@ import os
 import json
 import uvicorn
 import uuid
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request, status, Depends
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import StreamingResponse, JSONResponse
@@ -11,8 +11,13 @@ from pydantic import BaseModel, field_validator
 from openai import ChatCompletion
 import tiktoken
 from infrastructure.logger import AppLogger, SuccessLogExtra, ErrorLogExtra
+from infrastructure.db import create_db, SessionLocal
+from infrastructure.repository.guest_users_conversation_histories import (
+    GuestUsersConversationHistory,
+)
 from domain.unique_id import is_uuid_format
 from domain.message import is_message
+
 
 app = FastAPI(
     title="AI Cat API",
@@ -298,6 +303,151 @@ async def cats_streaming_messages(
 
     return StreamingResponse(
         event_stream(), media_type="text/event-stream", headers=response_headers
+    )
+
+
+# TODO テスト用のエンドポイントなので後で削除します
+@app.get("/conversations/{conversation_id}")
+async def find_conversation(
+    request: Request, conversation_id: str, db: SessionLocal = Depends(create_db)
+):
+    authorization = request.headers.get("Authorization", None)
+
+    un_authorization_response_body = {
+        "type": "UNAUTHORIZED",
+        "title": "invalid Authorization Header.",
+        "detail": "Authorization Header is not set.",
+    }
+
+    if authorization is None:
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content=un_authorization_response_body,
+        )
+
+    authorization_headers = authorization.split(" ")
+
+    if len(authorization_headers) != 2 or authorization_headers[0] != "Basic":
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content=un_authorization_response_body,
+        )
+
+    if authorization_headers[1] != API_CREDENTIAL:
+        un_authorization_response_body = {
+            "type": "UNAUTHORIZED",
+            "title": "invalid Authorization Header.",
+            "detail": "invalid credential.",
+        }
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content=un_authorization_response_body,
+        )
+
+    conversation = (
+        db.query(GuestUsersConversationHistory)
+        .filter(GuestUsersConversationHistory.conversation_id == conversation_id)
+        .first()
+    )
+
+    if conversation:
+        body = {
+            "id": conversation.id,
+            "conversation_id": conversation.conversation_id,
+            "cat_id": conversation.cat_id,
+            "user_id": conversation.user_id,
+            "user_message": conversation.user_message.decode("utf-8"),
+            "ai_message": conversation.ai_message.decode("utf-8"),
+        }
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content=body,
+        )
+
+    not_found_response_body = {
+        "type": "NOT_FOUND",
+        "title": "conversation is not found.",
+    }
+
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content=not_found_response_body,
+    )
+
+
+# TODO テスト用のエンドポイントなので後で削除します
+class CreateConversationRequestBody(BaseModel):
+    cat_id: str
+    user_id: str
+    user_message: str
+    ai_message: str
+
+
+# TODO テスト用のエンドポイントなので後で削除します
+@app.post("/conversations")
+async def create_conversation(
+    request: Request,
+    request_body: CreateConversationRequestBody,
+    db: SessionLocal = Depends(create_db),
+):
+    authorization = request.headers.get("Authorization", None)
+
+    un_authorization_response_body = {
+        "type": "UNAUTHORIZED",
+        "title": "invalid Authorization Header.",
+        "detail": "Authorization Header is not set.",
+    }
+
+    if authorization is None:
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content=un_authorization_response_body,
+        )
+
+    authorization_headers = authorization.split(" ")
+
+    if len(authorization_headers) != 2 or authorization_headers[0] != "Basic":
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content=un_authorization_response_body,
+        )
+
+    if authorization_headers[1] != API_CREDENTIAL:
+        un_authorization_response_body = {
+            "type": "UNAUTHORIZED",
+            "title": "invalid Authorization Header.",
+            "detail": "invalid credential.",
+        }
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content=un_authorization_response_body,
+        )
+
+    unique_id = uuid.uuid4()
+
+    new_conversation = GuestUsersConversationHistory(
+        conversation_id=str(unique_id),
+        cat_id=request_body.cat_id,
+        user_id=request_body.user_id,
+        user_message=request_body.user_message,
+        ai_message=request_body.ai_message,
+    )
+    db.add(new_conversation)
+    db.commit()
+
+    body = {
+        "id": new_conversation.id,
+        "conversation_id": new_conversation.conversation_id,
+        "cat_id": new_conversation.cat_id,
+        "user_id": new_conversation.user_id,
+        "user_message": new_conversation.user_message.decode("utf-8"),
+        "ai_message": new_conversation.ai_message.decode("utf-8"),
+    }
+
+    return JSONResponse(
+        status_code=status.HTTP_201_CREATED,
+        content=body,
     )
 
 
