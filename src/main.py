@@ -466,6 +466,8 @@ async def create_conversation(
         )
 
     try:
+        await connection.begin()
+
         async with connection.cursor() as cursor:
             sql = """
             INSERT INTO guest_users_conversation_histories
