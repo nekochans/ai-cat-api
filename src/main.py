@@ -395,7 +395,7 @@ async def find_conversation(request: Request, conversation_id: str):
         }
 
         return JSONResponse(
-            status_code=status.HTTP_201_CREATED,
+            status_code=status.HTTP_200_OK,
             content=error_response_body,
         )
     finally:
