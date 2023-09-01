@@ -85,10 +85,6 @@ def generate_error_response(response_body: dict):
     yield format_sse(response_body)
 
 
-# ユーザーごとの会話履歴を保存する
-user_conversations = {}
-
-
 def calculate_token_count(text: str) -> int:
     tiktoken_encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
     encoded = tiktoken_encoding.encode(text)
@@ -324,12 +320,7 @@ async def cats_streaming_messages(
 
             ai_responses.append({"role": "assistant", "content": ai_response_message})
 
-            # ストリーミングが終了したときに、AIの応答を会話履歴に追加
-            conversation_history.extend(ai_responses)
-
-            # 会話履歴を更新
-            user_conversations[conversation_id] = conversation_history
-
+            # ストリーミングが終了したときに会話履歴をDBに保存する
             await connection.begin()
 
             async with connection.cursor() as cursor:
