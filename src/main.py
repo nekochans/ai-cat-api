@@ -178,6 +178,36 @@ async def cats_streaming_messages(
             headers=response_headers,
         )
 
+    try:
+        connection = await create_db_connection()
+    except Exception as e:
+        extra = ErrorLogExtra(
+            request_id=response_headers.get("Ai-Meow-Cat-Request-Id"),
+            conversation_id=conversation_id,
+            cat_id=cat_id,
+            user_id=request_body.userId,
+            user_message=request_body.message,
+        )
+
+        logger.error(
+            f"An error occurred while connecting to the database: {str(e)}",
+            exc_info=True,
+            extra=extra.model_dump(),
+        )
+
+        error_response_body = {
+            "type": "INTERNAL_SERVER_ERROR",
+            "title": "an unexpected error has occurred.",
+            "detail": str(e),
+        }
+
+        return StreamingResponse(
+            content=generate_error_response(error_response_body),
+            media_type="text/event-stream",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            headers=response_headers,
+        )
+
     # ユーザーの会話履歴を取得。もしまだ存在しなければ、新しいリストを作成
     conversation_history = user_conversations.get(conversation_id, [])
 
@@ -260,6 +290,26 @@ async def cats_streaming_messages(
             # 会話履歴を更新
             user_conversations[conversation_id] = conversation_history
 
+            await connection.begin()
+
+            async with connection.cursor() as cursor:
+                sql = """
+                INSERT INTO guest_users_conversation_histories
+                (conversation_id, cat_id, user_id, user_message, ai_message)
+                VALUES (%s, %s, %s, %s, %s)
+                """
+                await cursor.execute(
+                    sql,
+                    (
+                        conversation_id,
+                        cat_id,
+                        request_body.userId,
+                        request_body.message,
+                        ai_response_message,
+                    ),
+                )
+            await connection.commit()
+
             extra = SuccessLogExtra(
                 request_id=response_headers.get("Ai-Meow-Cat-Request-Id"),
                 conversation_id=conversation_id,
@@ -275,6 +325,8 @@ async def cats_streaming_messages(
                 extra=extra.model_dump(),
             )
         except Exception as e:
+            await connection.rollback()
+
             extra = ErrorLogExtra(
                 request_id=response_headers.get("Ai-Meow-Cat-Request-Id"),
                 conversation_id=conversation_id,
@@ -296,6 +348,8 @@ async def cats_streaming_messages(
             }
 
             yield format_sse(error_response_body)
+        finally:
+            connection.close()
 
     return StreamingResponse(
         event_stream(), media_type="text/event-stream", headers=response_headers
