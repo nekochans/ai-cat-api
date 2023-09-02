@@ -210,10 +210,12 @@ async def cats_streaming_messages(
             SELECT user_message, ai_message
             FROM guest_users_conversation_histories
             WHERE conversation_id = %s
-            ORDER BY created_at ASC
+            ORDER BY created_at DESC
+            LIMIT 10
             """
             await cursor.execute(sql, (conversation_id,))
             result = await cursor.fetchall()
+            result.reverse()
             conversation_history = [
                 {"role": role_type, "content": row[message_type]}
                 for row in result
