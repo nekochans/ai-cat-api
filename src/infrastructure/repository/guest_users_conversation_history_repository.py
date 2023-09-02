@@ -1,4 +1,4 @@
-from typing import List, Dict, TypedDict
+from typing import List, TypedDict
 import aiomysql
 from domain.cat import CatId, get_prompt_by_cat_id
 from domain.message import ChatMessage
