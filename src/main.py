@@ -9,9 +9,9 @@ from fastapi.responses import StreamingResponse, JSONResponse
 from typing import Optional
 from pydantic import BaseModel, field_validator
 from openai import ChatCompletion
-import tiktoken
 from infrastructure.logger import AppLogger, SuccessLogExtra, ErrorLogExtra
 from infrastructure.db import create_db_connection
+from infrastructure.openai import calculate_token_count, is_token_limit_exceeded
 from domain.unique_id import is_uuid_format
 from domain.message import is_message
 
@@ -83,16 +83,6 @@ def format_sse(response_body: dict) -> str:
 
 def generate_error_response(response_body: dict):
     yield format_sse(response_body)
-
-
-def calculate_token_count(text: str) -> int:
-    tiktoken_encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
-    encoded = tiktoken_encoding.encode(text)
-    return len(encoded)
-
-
-# 最大トークン数
-max_token_limit = 1000
 
 
 @app.exception_handler(RequestValidationError)
@@ -266,9 +256,9 @@ async def cats_streaming_messages(
     total_tokens = 0
 
     for message in reversed(conversation_history):
-        message_tokens = calculate_token_count(message["content"])
+        message_tokens = calculate_token_count(message["content"], "gpt-3.5-turbo")
         if (
-            total_tokens + message_tokens > max_token_limit
+            is_token_limit_exceeded(total_tokens + message_tokens)
             and messages_for_chat_completion
         ):
             # トークン数が最大を超える場合、ループを抜ける
