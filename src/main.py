@@ -215,7 +215,9 @@ async def cats_streaming_messages(
             """
             await cursor.execute(sql, (conversation_id,))
             result = await cursor.fetchall()
-            result.reverse()
+            if result:
+                result.reverse()
+
             conversation_history = [
                 {"role": role_type, "content": row[message_type]}
                 for row in result
