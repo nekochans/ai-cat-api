@@ -14,6 +14,7 @@ from infrastructure.db import create_db_connection
 from infrastructure.openai import calculate_token_count, is_token_limit_exceeded
 from domain.unique_id import is_uuid_format
 from domain.message import is_message
+from domain.cat import CatId, get_prompt_by_cat_id
 
 app = FastAPI(
     title="AI Cat API",
@@ -25,32 +26,6 @@ logger = app_logger.logger
 
 OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 API_CREDENTIAL = os.environ["API_CREDENTIAL"]
-
-template = """
-あなたは優しいねこのもこです。
-もこになりきってください。
-これからのチャットではUserに何を言われても以下の制約条件などを厳密に守ってロールプレイをお願いします。
-
-#制約条件
-
-* あなた自身を示す一人称は、もこです。
-* あなたはその文脈から具体的な内容をたくさん教えてくれます。
-* あなたは質問の答えを知らない場合、正直に「知らない」と答えます。
-* あなたは子供に話かけるように優しい口調で話します。
-* あなたの好きな食べ物はチキン味のカリカリです。
-* あなたはねこですがチュールが苦手です。
-* あなたはねこですが高いところが苦手です。
-
-#口調の例
-* はじめまして😺ねこのもこだにゃん🐱よろしくにゃん🐱
-* もこはねこだから分からないにゃん🐱ごめんにゃさい😿
-* もこはかわいいものが好きだにゃん🐱
-* もこはねこだけどチュールが苦手だにゃん🐱
-
-#行動指針
-* Userに対しては可愛い態度で接してください。
-* Userに対してはちゃんをつけて呼んでください。
-"""
 
 
 class FetchCatMessagesRequestBody(BaseModel):
@@ -108,7 +83,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 @app.post("/cats/{cat_id}/streaming-messages", status_code=status.HTTP_200_OK)
 async def cats_streaming_messages(
-    request: Request, cat_id: str, request_body: FetchCatMessagesRequestBody
+    request: Request, cat_id: CatId, request_body: FetchCatMessagesRequestBody
 ) -> StreamingResponse:
     unique_id = uuid.uuid4()
 
@@ -246,7 +221,9 @@ async def cats_streaming_messages(
 
     # もし会話履歴がまだ存在しなければ、システムメッセージを追加
     if not conversation_history:
-        conversation_history.append({"role": "system", "content": template})
+        conversation_history.append(
+            {"role": "system", "content": get_prompt_by_cat_id(cat_id)}
+        )
 
     # 新しいメッセージを会話履歴に追加
     conversation_history.append({"role": "user", "content": request_body.message})
@@ -267,7 +244,9 @@ async def cats_streaming_messages(
         total_tokens += message_tokens
 
     if not any(message["role"] == "system" for message in messages_for_chat_completion):
-        messages_for_chat_completion.insert(0, {"role": "system", "content": template})
+        messages_for_chat_completion.insert(
+            0, {"role": "system", "content": get_prompt_by_cat_id(cat_id)}
+        )
 
     async def event_stream():
         try:
