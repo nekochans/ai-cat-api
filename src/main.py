@@ -143,6 +143,16 @@ async def cats_streaming_messages(
 
     try:
         connection = await create_db_connection()
+
+        repository = GuestUsersConversationHistoryRepository(connection)
+
+        chat_messages = await repository.create_messages_with_conversation_history(
+            {
+                "conversation_id": conversation_id,
+                "request_message": request_body.message,
+                "cat_id": cat_id,
+            }
+        )
     except Exception as e:
         extra = ErrorLogExtra(
             request_id=response_headers.get("Ai-Meow-Cat-Request-Id"),
@@ -170,16 +180,6 @@ async def cats_streaming_messages(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             headers=response_headers,
         )
-
-    repository = GuestUsersConversationHistoryRepository(connection)
-
-    chat_messages = await repository.create_messages_with_conversation_history(
-        {
-            "conversation_id": conversation_id,
-            "request_message": request_body.message,
-            "cat_id": cat_id,
-        }
-    )
 
     async def event_stream():
         try:
