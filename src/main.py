@@ -11,10 +11,12 @@ from pydantic import BaseModel, field_validator
 from openai import ChatCompletion
 from infrastructure.logger import AppLogger, SuccessLogExtra, ErrorLogExtra
 from infrastructure.db import create_db_connection
-from infrastructure.openai import calculate_token_count, is_token_limit_exceeded
+from infrastructure.repository.guest_users_conversation_history_repository import (
+    GuestUsersConversationHistoryRepository,
+)
 from domain.unique_id import is_uuid_format
 from domain.message import is_message
-from domain.cat import CatId, get_prompt_by_cat_id
+from domain.cat import CatId
 
 app = FastAPI(
     title="AI Cat API",
@@ -87,7 +89,7 @@ async def cats_streaming_messages(
 ) -> StreamingResponse:
     unique_id = uuid.uuid4()
 
-    conversation_id = (
+    conversation_id: str = (
         str(unique_id)
         if request_body.conversationId is None
         else request_body.conversationId
@@ -169,84 +171,15 @@ async def cats_streaming_messages(
             headers=response_headers,
         )
 
-    try:
-        async with connection.cursor() as cursor:
-            sql = """
-            SELECT user_message, ai_message
-            FROM guest_users_conversation_histories
-            WHERE conversation_id = %s
-            ORDER BY created_at DESC
-            LIMIT 10
-            """
-            await cursor.execute(sql, (conversation_id,))
-            result = await cursor.fetchall()
-            if result:
-                result.reverse()
+    repository = GuestUsersConversationHistoryRepository(connection)
 
-            conversation_history = [
-                {"role": role_type, "content": row[message_type]}
-                for row in result
-                for role_type, message_type in [
-                    ("user", "user_message"),
-                    ("assistant", "ai_message"),
-                ]
-            ]
-    except Exception as e:
-        extra = ErrorLogExtra(
-            request_id=response_headers.get("Ai-Meow-Cat-Request-Id"),
-            conversation_id=conversation_id,
-            cat_id=cat_id,
-            user_id=request_body.userId,
-            user_message=request_body.message,
-        )
-
-        logger.error(
-            f"An error occurred while executing SQL: {str(e)}",
-            exc_info=True,
-            extra=extra.model_dump(),
-        )
-
-        error_response_body = {
-            "type": "INTERNAL_SERVER_ERROR",
-            "title": "an unexpected error has occurred.",
-            "detail": str(e),
+    chat_messages = await repository.create_messages_with_conversation_history(
+        {
+            "conversation_id": conversation_id,
+            "request_message": request_body.message,
+            "cat_id": cat_id,
         }
-
-        return StreamingResponse(
-            content=generate_error_response(error_response_body),
-            media_type="text/event-stream",
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            headers=response_headers,
-        )
-
-    # もし会話履歴がまだ存在しなければ、システムメッセージを追加
-    if not conversation_history:
-        conversation_history.append(
-            {"role": "system", "content": get_prompt_by_cat_id(cat_id)}
-        )
-
-    # 新しいメッセージを会話履歴に追加
-    conversation_history.append({"role": "user", "content": request_body.message})
-
-    # 実際に会話履歴に含めるメッセージ
-    messages_for_chat_completion = []
-    total_tokens = 0
-
-    for message in reversed(conversation_history):
-        message_tokens = calculate_token_count(message["content"], "gpt-3.5-turbo")
-        if (
-            is_token_limit_exceeded(total_tokens + message_tokens)
-            and messages_for_chat_completion
-        ):
-            # トークン数が最大を超える場合、ループを抜ける
-            break
-        messages_for_chat_completion.insert(0, message)
-        total_tokens += message_tokens
-
-    if not any(message["role"] == "system" for message in messages_for_chat_completion):
-        messages_for_chat_completion.insert(
-            0, {"role": "system", "content": get_prompt_by_cat_id(cat_id)}
-        )
+    )
 
     async def event_stream():
         try:
@@ -258,7 +191,7 @@ async def cats_streaming_messages(
 
             response = await ChatCompletion.acreate(
                 model="gpt-3.5-turbo-0613",
-                messages=messages_for_chat_completion,
+                messages=chat_messages,
                 stream=True,
                 api_key=OPENAI_API_KEY,
                 temperature=0.7,
