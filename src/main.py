@@ -229,22 +229,16 @@ async def cats_streaming_messages(
             # ストリーミングが終了したときに会話履歴をDBに保存する
             await connection.begin()
 
-            async with connection.cursor() as cursor:
-                sql = """
-                INSERT INTO guest_users_conversation_histories
-                (conversation_id, cat_id, user_id, user_message, ai_message)
-                VALUES (%s, %s, %s, %s, %s)
-                """
-                await cursor.execute(
-                    sql,
-                    (
-                        conversation_id,
-                        cat_id,
-                        request_body.userId,
-                        request_body.message,
-                        ai_response_message,
-                    ),
-                )
+            await repository.save_conversation_history(
+                {
+                    "conversation_id": conversation_id,
+                    "cat_id": cat_id,
+                    "user_id": request_body.userId,
+                    "user_message": request_body.message,
+                    "ai_message": ai_response_message,
+                }
+            )
+
             await connection.commit()
 
             extra = SuccessLogExtra(

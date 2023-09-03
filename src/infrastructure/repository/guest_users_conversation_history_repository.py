@@ -11,6 +11,14 @@ class CreateMessagesWithConversationHistoryDto(TypedDict):
     cat_id: CatId
 
 
+class SaveGuestUsersConversationHistoryDto(TypedDict):
+    conversation_id: str
+    cat_id: CatId
+    user_id: str
+    user_message: str
+    ai_message: str
+
+
 class GuestUsersConversationHistoryRepository:
     def __init__(self, connection: aiomysql.Connection):
         self.connection = connection
@@ -67,3 +75,23 @@ class GuestUsersConversationHistoryRepository:
             )
 
         return chat_messages
+
+    async def save_conversation_history(
+        self, dto: SaveGuestUsersConversationHistoryDto
+    ) -> None:
+        async with self.connection.cursor() as cursor:
+            sql = """
+            INSERT INTO guest_users_conversation_histories
+            (conversation_id, cat_id, user_id, user_message, ai_message)
+            VALUES (%s, %s, %s, %s, %s)
+            """
+            await cursor.execute(
+                sql,
+                (
+                    dto["conversation_id"],
+                    dto["cat_id"],
+                    dto["user_id"],
+                    dto["user_message"],
+                    dto["ai_message"],
+                ),
+            )
