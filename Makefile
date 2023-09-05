@@ -6,7 +6,10 @@ lint:
 format:
 	black .
 
-ci:
+test:
+	poetry run python -m pytest -v
+
+ci: test
 	poetry run flake8 .
 	poetry run black --check .
 
