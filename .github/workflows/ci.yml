@@ -30,8 +30,9 @@ jobs:
           poetry env use ${{ env.PYTHON_VERSION }}
       - name: Install dependencies
         run: |
+          openssl version -d
+          ls /usr/lib/ssl
           poetry install --no-root
       - name: Run
         run: |
-          openssl version -d
           make ci
