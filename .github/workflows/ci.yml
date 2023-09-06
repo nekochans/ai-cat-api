@@ -35,7 +35,6 @@ jobs:
           poetry env use ${{ env.PYTHON_VERSION }}
       - name: Install dependencies
         run: |
-          openssl version -d
           poetry install --no-root
       - name: Install CA Certificates
         run: sudo apt-get update && sudo apt-get install -y ca-certificates
