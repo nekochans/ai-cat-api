@@ -32,6 +32,9 @@ jobs:
         run: |
           openssl version -d
           poetry install --no-root
+      - name: Install CA Certificates
+        run: sudo apt-get update && sudo apt-get install -y ca-certificates
       - name: Run
         run: |
+          ls /etc/ssl/certs/
           make ci
