@@ -31,7 +31,7 @@ jobs:
       - name: Install dependencies
         run: |
           openssl version -d
-          ls /usr/lib/ssl
+          ls /usr/lib/ssl/certs
           poetry install --no-root
       - name: Run
         run: |
