@@ -39,7 +39,11 @@ async def test_save_conversation_history(create_test_db_connection):
     await repository.save_conversation_history(dto)
 
     async with connection.cursor() as cursor:
-        sql = "SELECT * FROM guest_users_conversation_histories WHERE conversation_id = %s"
+        sql = """
+        SELECT *
+        FROM guest_users_conversation_histories
+        WHERE conversation_id = %s
+        """
 
         await cursor.execute(sql, conversation_id)
         result = await cursor.fetchone()
