@@ -31,7 +31,7 @@ class GuestUsersConversationHistoryRepository:
             SELECT user_message, ai_message
             FROM guest_users_conversation_histories
             WHERE conversation_id = %s
-            ORDER BY created_at DESC
+            ORDER BY id DESC
             LIMIT 10
             """
             await cursor.execute(sql, (dto["conversation_id"],))

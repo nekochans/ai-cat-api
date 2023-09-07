@@ -9,6 +9,11 @@ on:
 
 env:
   PYTHON_VERSION: '3.11'
+  DB_HOST: ${{ secrets.DB_HOST }}
+  DB_NAME: ${{ secrets.DB_NAME }}
+  DB_USERNAME: ${{ secrets.DB_USERNAME }}
+  DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+  SSL_CERT_PATH: '/etc/ssl/certs/ca-certificates.crt'
 
 jobs:
   ci:
@@ -31,6 +36,8 @@ jobs:
       - name: Install dependencies
         run: |
           poetry install --no-root
+      - name: Install CA Certificates
+        run: sudo apt-get update && sudo apt-get install -y ca-certificates
       - name: Run
         run: |
           make ci
