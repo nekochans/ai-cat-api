@@ -13,7 +13,7 @@ env:
   DB_NAME: ${{ secrets.DB_NAME }}
   DB_USERNAME: ${{ secrets.DB_USERNAME }}
   DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-  SSL_CERT_PATH: ${{ secrets.SSL_CERT_PATH }}
+  SSL_CERT_PATH: '/etc/ssl/certs/ca-certificates.crt'
 
 jobs:
   ci:
