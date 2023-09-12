@@ -246,9 +246,7 @@ async def cats_streaming_messages(
                 conversation_id=conversation_id,
                 cat_id=cat_id,
                 user_id=request_body.userId,
-                user_message=request_body.message,
                 ai_response_id=ai_response_id,
-                ai_message=ai_response_message,
             )
 
             logger.info(

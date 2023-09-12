@@ -21,9 +21,7 @@ class SuccessLogExtra(BaseModel):
     conversation_id: str
     cat_id: str
     user_id: str
-    user_message: str
     ai_response_id: str
-    ai_message: str
 
 
 class ErrorLogExtra(BaseModel):
