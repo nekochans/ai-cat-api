@@ -168,3 +168,15 @@ curl -v -N \
 }' \
 http://localhost:5002/cats/moko/streaming-messages
 ```
+
+## デプロイについて
+
+本アプリケーションは https://fly.io でホスティングされています。
+
+ステージングと本番の2つの環境が存在します。
+
+`main` にPRがマージされるとステージング環境にデプロイされます。
+
+本番環境へのデプロイは https://github.com/nekochans/ai-cat-api/releases から新しいリリースページを作成する事で実行されます。
+
+別サービスのドキュメントですが [lgtm-cat-ui 5. リリースページの作成](https://github.com/nekochans/lgtm-cat-ui/blob/main/.github/CONTRIBUTING.md#5-%E3%83%AA%E3%83%AA%E3%83%BC%E3%82%B9%E3%83%9A%E3%83%BC%E3%82%B8%E3%81%AE%E4%BD%9C%E6%88%90) と手順は同じです。
