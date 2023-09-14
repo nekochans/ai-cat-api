@@ -1,8 +1,9 @@
-name: deploy to production
+name: deploy to staging
 on:
   workflow_dispatch:
-  release:
-    types: [published]
+  push:
+    branches:
+      - main
 jobs:
   deploy:
     name: Deploy app
@@ -11,6 +12,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - run: flyctl deploy --remote-only
+      - run: flyctl deploy -c stg-fly.toml --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
