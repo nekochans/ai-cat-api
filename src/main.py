@@ -217,8 +217,6 @@ async def cats_streaming_messages(
 
                 chunk_body = {
                     "conversationId": conversation_id,
-                    "userId": request_body.userId,
-                    "catId": cat_id,
                     "message": chunk_message,
                 }
 
