@@ -2,13 +2,12 @@ import os
 from typing import AsyncGenerator
 from openai import ChatCompletion
 from domain.repository.cat_message_repository_interface import (
-    CatMessageRepositoryInterface,
     CreateMessageForGuestUserDto,
     CatResponseMessage,
 )
 
 
-class CatMessageRepository(CatMessageRepositoryInterface):
+class CatMessageRepository:
     def __init__(self):
         self.OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 
