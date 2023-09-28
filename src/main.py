@@ -8,12 +8,12 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import StreamingResponse, JSONResponse
 from typing import Optional
 from pydantic import BaseModel, field_validator
-from openai import ChatCompletion
 from infrastructure.logger import AppLogger, SuccessLogExtra, ErrorLogExtra
 from infrastructure.db import create_db_connection
 from infrastructure.repository.guest_users_conversation_history_repository import (
     GuestUsersConversationHistoryRepository,
 )
+from infrastructure.repository.cat_message_repository import CatMessageRepository
 from domain.unique_id import is_uuid_format
 from domain.message import is_message
 from domain.cat import CatId
@@ -26,7 +26,6 @@ app_logger = AppLogger()
 
 logger = app_logger.logger
 
-OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 API_CREDENTIAL = os.environ["API_CREDENTIAL"]
 
 
@@ -189,35 +188,26 @@ async def cats_streaming_messages(
             # AIの応答を結合するための変数
             ai_response_message = ""
 
-            response = await ChatCompletion.acreate(
-                model="gpt-3.5-turbo-0613",
-                messages=chat_messages,
-                stream=True,
-                api_key=OPENAI_API_KEY,
-                temperature=0.7,
-                user=request_body.userId,
-            )
+            cat_message_repository = CatMessageRepository()
+
+            create_message_for_guest_user_dto = {
+                "user_id": request_body.userId,
+                "chat_messages": chat_messages,
+            }
 
             ai_response_id = ""
-            async for chunk in response:
-                chunk_message = (
-                    chunk.get("choices")[0]["delta"].get("content")
-                    if chunk.get("choices")[0]["delta"].get("content")
-                    else ""
-                )
+            async for chunk in cat_message_repository.create_message_for_guest_user(
+                create_message_for_guest_user_dto
+            ):
+                # AIの応答を更新
+                ai_response_message += chunk.get("message")
 
                 if ai_response_id == "":
-                    ai_response_id = chunk.get("id")
-
-                if chunk_message == "":
-                    continue
-
-                # AIの応答を更新
-                ai_response_message += chunk_message
+                    ai_response_id = chunk.get("ai_response_id")
 
                 chunk_body = {
                     "conversationId": conversation_id,
-                    "message": chunk_message,
+                    "message": chunk.get("message"),
                 }
 
                 yield format_sse(chunk_body)
