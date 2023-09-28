@@ -1,26 +1,16 @@
-from typing import List, TypedDict
-import aiomysql
-from domain.cat import CatId, get_prompt_by_cat_id
+from typing import cast, List, Literal
+import aiomysql  # type: ignore
+from domain.cat import get_prompt_by_cat_id
 from domain.message import ChatMessage
+from domain.repository.guest_users_conversation_history_repository_interface import (
+    CreateMessagesWithConversationHistoryDto,
+    SaveGuestUsersConversationHistoryDto,
+)
 from infrastructure.openai import calculate_token_count, is_token_limit_exceeded
 
 
-class CreateMessagesWithConversationHistoryDto(TypedDict):
-    conversation_id: str
-    request_message: str
-    cat_id: CatId
-
-
-class SaveGuestUsersConversationHistoryDto(TypedDict):
-    conversation_id: str
-    cat_id: CatId
-    user_id: str
-    user_message: str
-    ai_message: str
-
-
 class GuestUsersConversationHistoryRepository:
-    def __init__(self, connection: aiomysql.Connection):
+    def __init__(self, connection: aiomysql.Connection) -> None:
         self.connection = connection
 
     async def create_messages_with_conversation_history(
@@ -58,7 +48,7 @@ class GuestUsersConversationHistoryRepository:
         conversation_history.append({"role": "user", "content": dto["request_message"]})
 
         # 実際に会話履歴に含めるメッセージ
-        chat_messages = []
+        chat_messages: List[ChatMessage] = []
         total_tokens = 0
 
         for message in reversed(conversation_history):
@@ -66,7 +56,8 @@ class GuestUsersConversationHistoryRepository:
             if is_token_limit_exceeded(total_tokens + message_tokens) and chat_messages:
                 # トークン数が最大を超える場合、ループを抜ける
                 break
-            chat_messages.insert(0, message)
+            role = cast(Literal["system", "user", "assistant"], message["role"])
+            chat_messages.insert(0, ChatMessage(role=role, content=message["content"]))
             total_tokens += message_tokens
 
         if not any(message["role"] == "system" for message in chat_messages):
