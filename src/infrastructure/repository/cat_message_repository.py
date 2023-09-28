@@ -8,7 +8,7 @@ from domain.repository.cat_message_repository_interface import (
 
 
 class CatMessageRepository:
-    def __init__(self):
+    def __init__(self) -> None:
         self.OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 
     async def create_message_for_guest_user(
@@ -21,7 +21,7 @@ class CatMessageRepository:
             api_key=self.OPENAI_API_KEY,
             temperature=0.7,
             user=dto.get("user_id"),
-        )
+        )  # type: ignore
 
         ai_response_id = ""
         async for chunk in response:
@@ -37,7 +37,7 @@ class CatMessageRepository:
             if chunk_message == "":
                 continue
 
-            chunk_body = {
+            chunk_body: CatResponseMessage = {
                 "ai_response_id": ai_response_id,
                 "message": chunk_message,
             }
