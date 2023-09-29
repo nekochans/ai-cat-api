@@ -6,7 +6,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import StreamingResponse, JSONResponse
-from typing import Optional, Dict, Any, Generator, AsyncGenerator
+from typing import Optional, Dict, Any, Generator, AsyncGenerator, TypedDict
 from pydantic import BaseModel, field_validator
 from infrastructure.logger import AppLogger, SuccessLogExtra, ErrorLogExtra
 from infrastructure.db import create_db_connection
@@ -20,7 +20,6 @@ from domain.cat import CatId
 from domain.repository.cat_message_repository_interface import (
     CreateMessageForGuestUserDto,
 )
-from domain.repository.cat_message_repository_interface import CatResponseMessage
 
 app = FastAPI(
     title="AI Cat API",
@@ -88,6 +87,11 @@ async def validation_exception_handler(
             }
         ),
     )
+
+
+class FetchCatMessagesResponseBody(TypedDict):
+    conversationId: str
+    message: str
 
 
 @app.post("/cats/{cat_id}/streaming-messages", status_code=status.HTTP_200_OK)
@@ -188,7 +192,7 @@ async def cats_streaming_messages(
             headers=response_headers,
         )
 
-    async def event_stream() -> AsyncGenerator[CatResponseMessage, None]:
+    async def event_stream() -> AsyncGenerator[str, None]:
         try:
             # AIの応答を一時的に保存するためのリスト
             ai_responses = []
@@ -213,12 +217,12 @@ async def cats_streaming_messages(
                 if ai_response_id == "":
                     ai_response_id = chunk.get("ai_response_id") or ""
 
-                chunk_body = {
-                    "conversationId": conversation_id,
-                    "message": chunk.get("message"),
-                }
+                chunk_body = FetchCatMessagesResponseBody(
+                    conversationId=conversation_id,
+                    message=chunk.get("message") or "",
+                )
 
-                yield format_sse(chunk_body)
+                yield format_sse(dict(chunk_body))
 
             ai_responses.append({"role": "assistant", "content": ai_response_message})
 
