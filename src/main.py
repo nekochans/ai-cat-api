@@ -57,12 +57,16 @@ def format_sse(response_body: Dict[str, Any]) -> str:
     return sse_message
 
 
-def generate_error_response(response_body: Dict[str, Any]) -> Generator[str, None, None]:
+def generate_error_response(
+    response_body: Dict[str, Any]
+) -> Generator[str, None, None]:
     yield format_sse(response_body)
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+async def validation_exception_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
     invalid_params = []
 
     errors = exc.errors()
@@ -180,7 +184,7 @@ async def cats_streaming_messages(
             headers=response_headers,
         )
 
-    async def event_stream():
+    async def event_stream() -> Generator[str, None, None]:
         try:
             # AIの応答を一時的に保存するためのリスト
             ai_responses = []
