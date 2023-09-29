@@ -279,7 +279,7 @@ async def cats_streaming_messages(
     )
 
 
-def start():
+def start() -> None:
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
 
 
