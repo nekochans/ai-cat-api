@@ -17,6 +17,9 @@ from infrastructure.repository.cat_message_repository import CatMessageRepositor
 from domain.unique_id import is_uuid_format
 from domain.message import is_message
 from domain.cat import CatId
+from domain.repository.cat_message_repository_interface import (
+    CreateMessageForGuestUserDto,
+)
 
 app = FastAPI(
     title="AI Cat API",
@@ -194,10 +197,10 @@ async def cats_streaming_messages(
 
             cat_message_repository = CatMessageRepository()
 
-            create_message_for_guest_user_dto = {
-                "user_id": request_body.userId,
-                "chat_messages": chat_messages,
-            }
+            create_message_for_guest_user_dto = CreateMessageForGuestUserDto(
+                user_id=request_body.userId,
+                chat_messages=chat_messages,
+            )
 
             ai_response_id = ""
             async for chunk in cat_message_repository.create_message_for_guest_user(
