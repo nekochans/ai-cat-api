@@ -6,7 +6,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import StreamingResponse, JSONResponse
-from typing import Optional
+from typing import Optional, Dict, Any
 from pydantic import BaseModel, field_validator
 from infrastructure.logger import AppLogger, SuccessLogExtra, ErrorLogExtra
 from infrastructure.db import create_db_connection
@@ -51,13 +51,13 @@ class FetchCatMessagesRequestBody(BaseModel):
         return v
 
 
-def format_sse(response_body: dict) -> str:
+def format_sse(response_body: Dict[str, Any]) -> str:
     json_body = json.dumps(response_body, ensure_ascii=False)
     sse_message = f"data: {json_body}\n\n"
     return sse_message
 
 
-def generate_error_response(response_body: dict):
+def generate_error_response(response_body: Dict[str, Any]):
     yield format_sse(response_body)
 
 
