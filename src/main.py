@@ -165,18 +165,16 @@ async def cats_streaming_messages(
             }
         )
     except Exception as e:
-        extra = ErrorLogExtra(
-            request_id=response_headers["Ai-Meow-Cat-Request-Id"],
-            conversation_id=conversation_id,
-            cat_id=cat_id,
-            user_id=request_body.userId,
-            user_message=request_body.message,
-        )
-
         logger.error(
             f"An error occurred while connecting to the database: {str(e)}",
             exc_info=True,
-            extra=extra.model_dump(),
+            extra=ErrorLogExtra(
+                request_id=response_headers["Ai-Meow-Cat-Request-Id"],
+                conversation_id=conversation_id,
+                cat_id=cat_id,
+                user_id=request_body.userId,
+                user_message=request_body.message,
+            ).model_dump(),
         )
 
         error_response_body = {
@@ -241,33 +239,29 @@ async def cats_streaming_messages(
 
             await connection.commit()
 
-            extra = SuccessLogExtra(
-                request_id=response_headers["Ai-Meow-Cat-Request-Id"],
-                conversation_id=conversation_id,
-                cat_id=cat_id,
-                user_id=request_body.userId,
-                ai_response_id=ai_response_id,
-            )
-
             logger.info(
                 "success",
-                extra=extra.model_dump(),
+                extra=SuccessLogExtra(
+                    request_id=response_headers["Ai-Meow-Cat-Request-Id"],
+                    conversation_id=conversation_id,
+                    cat_id=cat_id,
+                    user_id=request_body.userId,
+                    ai_response_id=ai_response_id,
+                ).model_dump(),
             )
         except Exception as e:
             await connection.rollback()
 
-            extra = ErrorLogExtra(
-                request_id=response_headers["Ai-Meow-Cat-Request-Id"],
-                conversation_id=conversation_id,
-                cat_id=cat_id,
-                user_id=request_body.userId,
-                user_message=request_body.message,
-            )
-
             logger.error(
                 f"An error occurred while creating the message: {str(e)}",
                 exc_info=True,
-                extra=extra.model_dump(),
+                extra=ErrorLogExtra(
+                    request_id=response_headers["Ai-Meow-Cat-Request-Id"],
+                    conversation_id=conversation_id,
+                    cat_id=cat_id,
+                    user_id=request_body.userId,
+                    user_message=request_body.message,
+                ).model_dump(),
             )
 
             error_response_body = {
