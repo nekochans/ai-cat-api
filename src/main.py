@@ -208,10 +208,10 @@ async def cats_streaming_messages(
                 create_message_for_guest_user_dto
             ):
                 # AIの応答を更新
-                ai_response_message += chunk.get("message")
+                ai_response_message += chunk.get("message") or ""
 
                 if ai_response_id == "":
-                    ai_response_id = chunk.get("ai_response_id")
+                    ai_response_id = chunk.get("ai_response_id") or ""
 
                 chunk_body = {
                     "conversationId": conversation_id,
