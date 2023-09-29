@@ -7,7 +7,7 @@ format:
 	black .
 
 typecheck:
-	mypy --strict
+	poetry run python -m mypy --strict
 
 test:
 	poetry run python -m pytest -v
