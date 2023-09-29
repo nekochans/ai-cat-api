@@ -177,14 +177,14 @@ async def cats_streaming_messages(
             ).model_dump(),
         )
 
-        error_response_body = {
+        db_error_response_body = {
             "type": "INTERNAL_SERVER_ERROR",
             "title": "an unexpected error has occurred.",
             "detail": str(e),
         }
 
         return StreamingResponse(
-            content=generate_error_response(error_response_body),
+            content=generate_error_response(db_error_response_body),
             media_type="text/event-stream",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             headers=response_headers,
@@ -264,13 +264,13 @@ async def cats_streaming_messages(
                 ).model_dump(),
             )
 
-            error_response_body = {
+            unexpected_error_response_body = {
                 "type": "INTERNAL_SERVER_ERROR",
                 "title": "an unexpected error has occurred.",
                 "detail": str(e),
             }
 
-            yield format_sse(error_response_body)
+            yield format_sse(unexpected_error_response_body)
         finally:
             connection.close()
 
