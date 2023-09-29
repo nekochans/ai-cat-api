@@ -1,5 +1,5 @@
 from typing import cast, List, Literal
-import aiomysql  # type: ignore
+import aiomysql
 from domain.cat import get_prompt_by_cat_id
 from domain.message import ChatMessage
 from domain.repository.guest_users_conversation_history_repository_interface import (

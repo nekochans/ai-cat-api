@@ -6,10 +6,13 @@ lint:
 format:
 	black .
 
+typecheck:
+	poetry run python -m mypy --strict
+
 test:
 	poetry run python -m pytest -v
 
-ci: test
+ci: test typecheck
 	poetry run flake8 .
 	poetry run black --check .
 

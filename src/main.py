@@ -6,7 +6,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import StreamingResponse, JSONResponse
-from typing import Optional
+from typing import Optional, Dict, Any, Generator, AsyncGenerator, TypedDict
 from pydantic import BaseModel, field_validator
 from infrastructure.logger import AppLogger, SuccessLogExtra, ErrorLogExtra
 from infrastructure.db import create_db_connection
@@ -17,6 +17,9 @@ from infrastructure.repository.cat_message_repository import CatMessageRepositor
 from domain.unique_id import is_uuid_format
 from domain.message import is_message
 from domain.cat import CatId
+from domain.repository.cat_message_repository_interface import (
+    CreateMessageForGuestUserDto,
+)
 
 app = FastAPI(
     title="AI Cat API",
@@ -51,18 +54,22 @@ class FetchCatMessagesRequestBody(BaseModel):
         return v
 
 
-def format_sse(response_body: dict) -> str:
+def format_sse(response_body: Dict[str, Any]) -> str:
     json_body = json.dumps(response_body, ensure_ascii=False)
     sse_message = f"data: {json_body}\n\n"
     return sse_message
 
 
-def generate_error_response(response_body: dict):
+def generate_error_response(
+    response_body: Dict[str, Any]
+) -> Generator[str, None, None]:
     yield format_sse(response_body)
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
+async def validation_exception_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
     invalid_params = []
 
     errors = exc.errors()
@@ -80,6 +87,11 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
             }
         ),
     )
+
+
+class FetchCatMessagesResponseBody(TypedDict):
+    conversationId: str
+    message: str
 
 
 @app.post("/cats/{cat_id}/streaming-messages", status_code=status.HTTP_200_OK)
@@ -153,34 +165,32 @@ async def cats_streaming_messages(
             }
         )
     except Exception as e:
-        extra = ErrorLogExtra(
-            request_id=response_headers.get("Ai-Meow-Cat-Request-Id"),
-            conversation_id=conversation_id,
-            cat_id=cat_id,
-            user_id=request_body.userId,
-            user_message=request_body.message,
-        )
-
         logger.error(
             f"An error occurred while connecting to the database: {str(e)}",
             exc_info=True,
-            extra=extra.model_dump(),
+            extra=ErrorLogExtra(
+                request_id=response_headers["Ai-Meow-Cat-Request-Id"],
+                conversation_id=conversation_id,
+                cat_id=cat_id,
+                user_id=request_body.userId,
+                user_message=request_body.message,
+            ).model_dump(),
         )
 
-        error_response_body = {
+        db_error_response_body = {
             "type": "INTERNAL_SERVER_ERROR",
             "title": "an unexpected error has occurred.",
             "detail": str(e),
         }
 
         return StreamingResponse(
-            content=generate_error_response(error_response_body),
+            content=generate_error_response(db_error_response_body),
             media_type="text/event-stream",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             headers=response_headers,
         )
 
-    async def event_stream():
+    async def event_stream() -> AsyncGenerator[str, None]:
         try:
             # AIの応答を一時的に保存するためのリスト
             ai_responses = []
@@ -190,27 +200,27 @@ async def cats_streaming_messages(
 
             cat_message_repository = CatMessageRepository()
 
-            create_message_for_guest_user_dto = {
-                "user_id": request_body.userId,
-                "chat_messages": chat_messages,
-            }
+            create_message_for_guest_user_dto = CreateMessageForGuestUserDto(
+                user_id=request_body.userId,
+                chat_messages=chat_messages,
+            )
 
             ai_response_id = ""
             async for chunk in cat_message_repository.create_message_for_guest_user(
                 create_message_for_guest_user_dto
             ):
                 # AIの応答を更新
-                ai_response_message += chunk.get("message")
+                ai_response_message += chunk.get("message") or ""
 
                 if ai_response_id == "":
-                    ai_response_id = chunk.get("ai_response_id")
+                    ai_response_id = chunk.get("ai_response_id") or ""
 
-                chunk_body = {
-                    "conversationId": conversation_id,
-                    "message": chunk.get("message"),
-                }
+                chunk_body = FetchCatMessagesResponseBody(
+                    conversationId=conversation_id,
+                    message=chunk.get("message") or "",
+                )
 
-                yield format_sse(chunk_body)
+                yield format_sse(dict(chunk_body))
 
             ai_responses.append({"role": "assistant", "content": ai_response_message})
 
@@ -229,42 +239,38 @@ async def cats_streaming_messages(
 
             await connection.commit()
 
-            extra = SuccessLogExtra(
-                request_id=response_headers.get("Ai-Meow-Cat-Request-Id"),
-                conversation_id=conversation_id,
-                cat_id=cat_id,
-                user_id=request_body.userId,
-                ai_response_id=ai_response_id,
-            )
-
             logger.info(
                 "success",
-                extra=extra.model_dump(),
+                extra=SuccessLogExtra(
+                    request_id=response_headers["Ai-Meow-Cat-Request-Id"],
+                    conversation_id=conversation_id,
+                    cat_id=cat_id,
+                    user_id=request_body.userId,
+                    ai_response_id=ai_response_id,
+                ).model_dump(),
             )
         except Exception as e:
             await connection.rollback()
 
-            extra = ErrorLogExtra(
-                request_id=response_headers.get("Ai-Meow-Cat-Request-Id"),
-                conversation_id=conversation_id,
-                cat_id=cat_id,
-                user_id=request_body.userId,
-                user_message=request_body.message,
-            )
-
             logger.error(
                 f"An error occurred while creating the message: {str(e)}",
                 exc_info=True,
-                extra=extra.model_dump(),
+                extra=ErrorLogExtra(
+                    request_id=response_headers["Ai-Meow-Cat-Request-Id"],
+                    conversation_id=conversation_id,
+                    cat_id=cat_id,
+                    user_id=request_body.userId,
+                    user_message=request_body.message,
+                ).model_dump(),
             )
 
-            error_response_body = {
+            unexpected_error_response_body = {
                 "type": "INTERNAL_SERVER_ERROR",
                 "title": "an unexpected error has occurred.",
                 "detail": str(e),
             }
 
-            yield format_sse(error_response_body)
+            yield format_sse(unexpected_error_response_body)
         finally:
             connection.close()
 
@@ -273,7 +279,7 @@ async def cats_streaming_messages(
     )
 
 
-def start():
+def start() -> None:
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
 
 
