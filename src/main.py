@@ -6,7 +6,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import StreamingResponse, JSONResponse
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Generator
 from pydantic import BaseModel, field_validator
 from infrastructure.logger import AppLogger, SuccessLogExtra, ErrorLogExtra
 from infrastructure.db import create_db_connection
@@ -57,12 +57,12 @@ def format_sse(response_body: Dict[str, Any]) -> str:
     return sse_message
 
 
-def generate_error_response(response_body: Dict[str, Any]):
+def generate_error_response(response_body: Dict[str, Any]) -> Generator[str, None, None]:
     yield format_sse(response_body)
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
+async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     invalid_params = []
 
     errors = exc.errors()
