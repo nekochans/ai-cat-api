@@ -154,7 +154,7 @@ async def cats_streaming_messages(
         )
     except Exception as e:
         extra = ErrorLogExtra(
-            request_id=response_headers.get("Ai-Meow-Cat-Request-Id"),
+            request_id=response_headers["Ai-Meow-Cat-Request-Id"],
             conversation_id=conversation_id,
             cat_id=cat_id,
             user_id=request_body.userId,
