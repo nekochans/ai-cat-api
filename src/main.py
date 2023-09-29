@@ -6,7 +6,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import StreamingResponse, JSONResponse
-from typing import Optional, Dict, Any, Generator
+from typing import Optional, Dict, Any, Generator, AsyncGenerator
 from pydantic import BaseModel, field_validator
 from infrastructure.logger import AppLogger, SuccessLogExtra, ErrorLogExtra
 from infrastructure.db import create_db_connection
@@ -20,6 +20,7 @@ from domain.cat import CatId
 from domain.repository.cat_message_repository_interface import (
     CreateMessageForGuestUserDto,
 )
+from domain.repository.cat_message_repository_interface import CatResponseMessage
 
 app = FastAPI(
     title="AI Cat API",
@@ -187,7 +188,7 @@ async def cats_streaming_messages(
             headers=response_headers,
         )
 
-    async def event_stream() -> Generator[str, None, None]:
+    async def event_stream() -> AsyncGenerator[CatResponseMessage, None]:
         try:
             # AIの応答を一時的に保存するためのリスト
             ai_responses = []
