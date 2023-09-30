@@ -18,7 +18,7 @@ from domain.unique_id import is_uuid_format
 from domain.message import is_message
 from domain.cat import CatId
 from domain.repository.cat_message_repository_interface import (
-    CreateMessageForGuestUserDto,
+    GenerateMessageForGuestUserDto,
 )
 
 app = FastAPI(
@@ -200,13 +200,13 @@ async def generate_cat_message_for_guest_user(
 
             cat_message_repository = CatMessageRepository()
 
-            create_message_for_guest_user_dto = CreateMessageForGuestUserDto(
+            create_message_for_guest_user_dto = GenerateMessageForGuestUserDto(
                 user_id=request_body.userId,
                 chat_messages=chat_messages,
             )
 
             ai_response_id = ""
-            async for chunk in cat_message_repository.create_message_for_guest_user(
+            async for chunk in cat_message_repository.generate_message_for_guest_user(
                 create_message_for_guest_user_dto
             ):
                 # AIの応答を更新

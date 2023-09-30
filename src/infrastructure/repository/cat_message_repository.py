@@ -2,8 +2,8 @@ import os
 from typing import AsyncGenerator
 from openai import ChatCompletion
 from domain.repository.cat_message_repository_interface import (
-    CreateMessageForGuestUserDto,
-    CatResponseMessage,
+    GenerateMessageForGuestUserDto,
+    GenerateMessageForGuestUserResult,
 )
 
 
@@ -11,9 +11,9 @@ class CatMessageRepository:
     def __init__(self) -> None:
         self.OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 
-    async def create_message_for_guest_user(
-        self, dto: CreateMessageForGuestUserDto
-    ) -> AsyncGenerator[CatResponseMessage, None]:
+    async def generate_message_for_guest_user(
+        self, dto: GenerateMessageForGuestUserDto
+    ) -> AsyncGenerator[GenerateMessageForGuestUserResult, None]:
         response = await ChatCompletion.acreate(
             model="gpt-3.5-turbo-0613",
             messages=dto.get("chat_messages"),
@@ -37,7 +37,7 @@ class CatMessageRepository:
             if chunk_message == "":
                 continue
 
-            chunk_body: CatResponseMessage = {
+            chunk_body: GenerateMessageForGuestUserResult = {
                 "ai_response_id": ai_response_id,
                 "message": chunk_message,
             }
