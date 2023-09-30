@@ -1,4 +1,9 @@
+import uuid
 import re
+
+
+def generate_unique_id() -> str:
+    return str(uuid.uuid4())
 
 
 def is_uuid_format(value: str) -> bool:

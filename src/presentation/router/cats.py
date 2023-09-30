@@ -1,4 +1,3 @@
-import uuid
 from typing import Optional, AsyncGenerator
 from fastapi import APIRouter, status, Request, Depends
 from fastapi.responses import StreamingResponse
@@ -7,7 +6,7 @@ from pydantic import BaseModel, field_validator
 from presentation.sse import format_sse, generate_error_response
 from presentation.auth import basic_auth
 from domain.cat import CatId
-from domain.unique_id import is_uuid_format
+from domain.unique_id import is_uuid_format, generate_unique_id
 from domain.message import is_message
 from domain.repository.cat_message_repository_interface import (
     GenerateMessageForGuestUserDto,
@@ -66,15 +65,13 @@ async def generate_cat_message_for_guest_user(
     request_body: GenerateCatMessageForGuestUserRequestBody,
     credentials: HTTPBasicCredentials = Depends(basic_auth),
 ) -> StreamingResponse:
-    unique_id = uuid.uuid4()
+    unique_id = generate_unique_id()
 
-    conversation_id: str = (
-        str(unique_id)
-        if request_body.conversationId is None
-        else request_body.conversationId
-    )
+    conversation_id = unique_id
+    if request_body.conversationId is not None and is_uuid_format(request_body.conversationId):
+        conversation_id = request_body.conversationId
 
-    response_headers = {"Ai-Meow-Cat-Request-Id": str(unique_id)}
+    response_headers = {"Ai-Meow-Cat-Request-Id": unique_id}
 
     try:
         connection = await create_db_connection()
