@@ -16,7 +16,7 @@ from infrastructure.repository.guest_users_conversation_history_repository impor
 from infrastructure.repository.cat_message_repository import (
     CatMessageRepository,
 )
-from infrastructure.logger import AppLogger, SuccessLogExtra, ErrorLogExtra
+from log.logger import AppLogger, SuccessLogExtra, ErrorLogExtra
 
 
 class GenerateCatMessageForGuestUserRequestBody(BaseModel):
