@@ -1,5 +1,5 @@
 import uvicorn
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, Request, status, HTTPException
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -10,9 +10,39 @@ app = FastAPI(
 )
 
 
+@app.exception_handler(status.HTTP_401_UNAUTHORIZED)
+def unauthorized_exception_handler(
+    request: Request,
+    exception: HTTPException,
+) -> JSONResponse:
+    return JSONResponse(
+        content={
+            "type": "UNAUTHORIZED",
+            "title": "invalid Authorization Header.",
+        },
+        status_code=status.HTTP_401_UNAUTHORIZED,
+    )
+
+
+@app.exception_handler(status.HTTP_404_NOT_FOUND)
+def not_found_exception_handler(
+    request: Request,
+    exception: HTTPException,
+) -> JSONResponse:
+    return JSONResponse(
+        content={
+            "type": "NOT_FOUND",
+            "title": "Resource not found.",
+            "detail": f"{str(request.url)} not found.",
+        },
+        status_code=status.HTTP_404_NOT_FOUND,
+    )
+
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(
-    request: Request, exc: RequestValidationError
+    request: Request,
+    exc: RequestValidationError,
 ) -> JSONResponse:
     invalid_params = []
 

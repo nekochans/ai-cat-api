@@ -1,10 +1,11 @@
 import uuid
-import os
 from typing import Optional, AsyncGenerator
-from fastapi import APIRouter, status, Request
+from fastapi import APIRouter, status, Request, Depends
 from fastapi.responses import StreamingResponse
+from fastapi.security import HTTPBasicCredentials
 from pydantic import BaseModel, field_validator
 from presentation.sse import format_sse, generate_error_response
+from presentation.auth import basic_auth
 from domain.cat import CatId
 from domain.unique_id import is_uuid_format
 from domain.message import is_message
@@ -23,9 +24,6 @@ router = APIRouter()
 app_logger = AppLogger()
 
 logger = app_logger.logger
-
-
-API_CREDENTIAL = os.environ["API_CREDENTIAL"]
 
 
 class GenerateCatMessageForGuestUserRequestBody(BaseModel):
@@ -64,6 +62,7 @@ async def generate_cat_message_for_guest_user(
     request: Request,
     cat_id: CatId,
     request_body: GenerateCatMessageForGuestUserRequestBody,
+    credentials: HTTPBasicCredentials = Depends(basic_auth),
 ) -> StreamingResponse:
     unique_id = uuid.uuid4()
 
@@ -74,50 +73,6 @@ async def generate_cat_message_for_guest_user(
     )
 
     response_headers = {"Ai-Meow-Cat-Request-Id": str(unique_id)}
-
-    authorization = request.headers.get("Authorization", None)
-
-    un_authorization_response_body = {
-        "type": "UNAUTHORIZED",
-        "title": "invalid Authorization Header.",
-        "detail": "Authorization Header is not set.",
-        "userId": request_body.userId,
-        "catId": cat_id,
-    }
-
-    if authorization is None:
-        return StreamingResponse(
-            content=generate_error_response(un_authorization_response_body),
-            media_type="text/event-stream",
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            headers=response_headers,
-        )
-
-    authorization_headers = authorization.split(" ")
-
-    if len(authorization_headers) != 2 or authorization_headers[0] != "Basic":
-        return StreamingResponse(
-            content=generate_error_response(un_authorization_response_body),
-            media_type="text/event-stream",
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            headers=response_headers,
-        )
-
-    if authorization_headers[1] != API_CREDENTIAL:
-        un_authorization_response_body = {
-            "type": "UNAUTHORIZED",
-            "title": "invalid Authorization Header.",
-            "detail": "invalid credential.",
-            "userId": request_body.userId,
-            "catId": cat_id,
-        }
-
-        return StreamingResponse(
-            content=generate_error_response(un_authorization_response_body),
-            media_type="text/event-stream",
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            headers=response_headers,
-        )
 
     try:
         connection = await create_db_connection()
