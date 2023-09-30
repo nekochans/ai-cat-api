@@ -95,7 +95,7 @@ class FetchCatMessagesResponseBody(TypedDict):
 
 
 @app.post("/cats/{cat_id}/streaming-messages", status_code=status.HTTP_200_OK)
-async def cats_streaming_messages(
+async def generate_cat_message_for_guest_user(
     request: Request, cat_id: CatId, request_body: FetchCatMessagesRequestBody
 ) -> StreamingResponse:
     unique_id = uuid.uuid4()
@@ -190,7 +190,7 @@ async def cats_streaming_messages(
             headers=response_headers,
         )
 
-    async def event_stream() -> AsyncGenerator[str, None]:
+    async def generate_cat_message_for_guest_user_stream() -> AsyncGenerator[str, None]:
         try:
             # AIの応答を一時的に保存するためのリスト
             ai_responses = []
@@ -275,7 +275,9 @@ async def cats_streaming_messages(
             connection.close()
 
     return StreamingResponse(
-        event_stream(), media_type="text/event-stream", headers=response_headers
+        generate_cat_message_for_guest_user_stream(),
+        media_type="text/event-stream",
+        headers=response_headers,
     )
 
 
