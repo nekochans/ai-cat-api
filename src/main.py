@@ -95,7 +95,7 @@ class GenerateCatMessageForGuestUserResponseBody(BaseModel):
 
 
 @app.post(
-    "/cats/{cat_id}/streaming-messages",
+    "/cats/{cat_id}/messages-for-guest-users",
     status_code=status.HTTP_200_OK,
     response_model=GenerateCatMessageForGuestUserResponseBody,
 )
