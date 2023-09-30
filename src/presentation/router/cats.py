@@ -9,13 +9,15 @@ from presentation.auth import basic_auth
 from domain.cat import CatId
 from domain.unique_id import is_uuid_format
 from domain.message import is_message
+from domain.repository.cat_message_repository_interface import (
+    GenerateMessageForGuestUserDto,
+)
 from infrastructure.db import create_db_connection
 from infrastructure.repository.guest_users_conversation_history_repository import (
     GuestUsersConversationHistoryRepository,
 )
 from infrastructure.repository.cat_message_repository import (
     CatMessageRepository,
-    GenerateMessageForGuestUserDto,
 )
 from infrastructure.logger import AppLogger, SuccessLogExtra, ErrorLogExtra
 
