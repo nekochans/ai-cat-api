@@ -6,7 +6,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import StreamingResponse, JSONResponse
-from typing import Optional, Dict, Any, Generator, AsyncGenerator, TypedDict
+from typing import Optional, Dict, Any, Generator, AsyncGenerator
 from pydantic import BaseModel, field_validator
 from infrastructure.logger import AppLogger, SuccessLogExtra, ErrorLogExtra
 from infrastructure.db import create_db_connection
@@ -32,7 +32,7 @@ logger = app_logger.logger
 API_CREDENTIAL = os.environ["API_CREDENTIAL"]
 
 
-class FetchCatMessagesRequestBody(BaseModel):
+class GenerateCatMessageForGuestUserRequestBody(BaseModel):
     userId: str
     message: str
     conversationId: Optional[str] = None
@@ -89,14 +89,20 @@ async def validation_exception_handler(
     )
 
 
-class FetchCatMessagesResponseBody(TypedDict):
+class GenerateCatMessageForGuestUserResponseBody(BaseModel):
     conversationId: str
     message: str
 
 
-@app.post("/cats/{cat_id}/streaming-messages", status_code=status.HTTP_200_OK)
+@app.post(
+    "/cats/{cat_id}/streaming-messages",
+    status_code=status.HTTP_200_OK,
+    response_model=GenerateCatMessageForGuestUserResponseBody,
+)
 async def generate_cat_message_for_guest_user(
-    request: Request, cat_id: CatId, request_body: FetchCatMessagesRequestBody
+    request: Request,
+    cat_id: CatId,
+    request_body: GenerateCatMessageForGuestUserRequestBody,
 ) -> StreamingResponse:
     unique_id = uuid.uuid4()
 
@@ -215,12 +221,12 @@ async def generate_cat_message_for_guest_user(
                 if ai_response_id == "":
                     ai_response_id = chunk.get("ai_response_id") or ""
 
-                chunk_body = FetchCatMessagesResponseBody(
+                chunk_body = GenerateCatMessageForGuestUserResponseBody(
                     conversationId=conversation_id,
                     message=chunk.get("message") or "",
                 )
 
-                yield format_sse(dict(chunk_body))
+                yield format_sse(chunk_body.model_dump())
 
             ai_responses.append({"role": "assistant", "content": ai_response_message})
 
