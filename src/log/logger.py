@@ -1,7 +1,6 @@
 import json
 from logging import Logger, LogRecord, getLogger, StreamHandler, Formatter, INFO
-from pydantic import BaseModel
-from typing import Literal
+from typing import Literal, TypedDict
 
 
 class JsonFormatter(Formatter):
@@ -16,7 +15,7 @@ class JsonFormatter(Formatter):
             return super().format(record)
 
 
-class SuccessLogExtra(BaseModel):
+class SuccessLogExtra(TypedDict):
     request_id: str
     conversation_id: str
     cat_id: str
@@ -24,7 +23,7 @@ class SuccessLogExtra(BaseModel):
     ai_response_id: str
 
 
-class ErrorLogExtra(BaseModel):
+class ErrorLogExtra(TypedDict):
     request_id: str
     conversation_id: str
     cat_id: str

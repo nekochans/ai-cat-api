@@ -88,7 +88,7 @@ class GenerateCatMessageForGuestUserController:
                     cat_id=self.cat_id,
                     user_id=self.request_body.userId,
                     user_message=self.request_body.message,
-                ).model_dump(),
+                ),
             )
 
             db_error_response_body = {
@@ -165,7 +165,7 @@ class GenerateCatMessageForGuestUserController:
                         cat_id=self.cat_id,
                         user_id=self.request_body.userId,
                         ai_response_id=ai_response_id,
-                    ).model_dump(),
+                    ),
                 )
             except Exception as e:
                 await connection.rollback()
@@ -179,7 +179,7 @@ class GenerateCatMessageForGuestUserController:
                         cat_id=self.cat_id,
                         user_id=self.request_body.userId,
                         user_message=self.request_body.message,
-                    ).model_dump(),
+                    ),
                 )
 
                 unexpected_error_response_body = {
