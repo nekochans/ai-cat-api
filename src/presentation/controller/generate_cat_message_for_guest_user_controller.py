@@ -18,6 +18,8 @@ from log.logger import AppLogger, ErrorLogExtra
 from usecase.generate_cat_message_for_guest_user_use_case import (
     GenerateCatMessageForGuestUserUseCase,
     GenerateCatMessageForGuestUserUseCaseDto,
+    is_success_result,
+    is_error_result,
 )
 
 
@@ -43,9 +45,14 @@ class GenerateCatMessageForGuestUserRequestBody(BaseModel):
         return v
 
 
-class GenerateCatMessageForGuestUserResponseBody(BaseModel):
+class GenerateCatMessageForGuestUserSuccessResponseBody(BaseModel):
     conversationId: str
     message: str
+
+
+class GenerateCatMessageForGuestUserErrorResponseBody(BaseModel):
+    type: str
+    title: str
 
 
 class GenerateCatMessageForGuestUserController:
@@ -90,7 +97,6 @@ class GenerateCatMessageForGuestUserController:
             db_error_response_body = {
                 "type": "INTERNAL_SERVER_ERROR",
                 "title": "an unexpected error has occurred.",
-                "detail": str(e),
             }
 
             return StreamingResponse(
@@ -123,12 +129,23 @@ class GenerateCatMessageForGuestUserController:
             str, None
         ]:
             async for chunk in use_case.execute():
-                yield format_sse(
-                    GenerateCatMessageForGuestUserResponseBody(
-                        conversationId=chunk["conversation_id"],
-                        message=chunk["message"],
-                    ).model_dump()
-                )
+                if is_error_result(chunk):
+                    yield format_sse(
+                        GenerateCatMessageForGuestUserErrorResponseBody(
+                            type=chunk["type"],
+                            title=chunk["title"],
+                        ).model_dump()
+                    )
+                    continue
+
+                if is_success_result(chunk):
+                    yield format_sse(
+                        GenerateCatMessageForGuestUserSuccessResponseBody(
+                            conversationId=chunk["conversation_id"],
+                            message=chunk["message"],
+                        ).model_dump()
+                    )
+                    continue
 
         return StreamingResponse(
             generate_cat_message_for_guest_user_stream(),

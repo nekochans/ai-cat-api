@@ -1,4 +1,4 @@
-from typing import TypedDict, AsyncGenerator
+from typing import TypedDict, AsyncGenerator, Union, Dict, Any
 from usecase.db_handler_interface import DbHandlerInterface
 from usecase.error.create_messages_with_conversation_history_error import (
     CreateMessagesWithConversationHistoryError,
@@ -35,13 +35,55 @@ class GenerateCatMessageForGuestUserUseCaseDto(
     pass
 
 
+class GenerateCatMessageForGuestUserUseCaseSuccessResult(TypedDict):
+    conversation_id: str
+    message: str
+
+
+class GenerateCatMessageForGuestUserUseCaseErrorResult(TypedDict):
+    type: str
+    title: str
+
+
+GenerateCatMessageForGuestUserUseCaseResult = Union[
+    GenerateCatMessageForGuestUserUseCaseSuccessResult,
+    GenerateCatMessageForGuestUserUseCaseErrorResult,
+]
+
+
+def is_success_result(result: Dict[str, Any]) -> bool:
+    required_keys_types = {
+        "conversation_id": str,
+        "message": str,
+    }
+
+    return all(
+        key in result and isinstance(result[key], key_type)
+        for key, key_type in required_keys_types.items()
+    )
+
+
+def is_error_result(result: Dict[str, Any]) -> bool:
+    required_keys_types = {
+        "type": str,
+        "title": str,
+    }
+
+    return all(
+        key in result and isinstance(result[key], key_type)
+        for key, key_type in required_keys_types.items()
+    )
+
+
 class GenerateCatMessageForGuestUserUseCase:
     def __init__(self, dto: GenerateCatMessageForGuestUserUseCaseDto) -> None:
         app_logger = AppLogger()
         self.logger = app_logger.logger
         self.dto = dto
 
-    async def execute(self) -> AsyncGenerator[str, None]:
+    async def execute(
+        self,
+    ) -> AsyncGenerator[GenerateCatMessageForGuestUserUseCaseResult, None]:
         conversation_id: str = self.dto["request_id"]
         if self.dto.get("conversation_id") is not None:
             conversation_id = self.dto.get("conversation_id")
@@ -97,12 +139,12 @@ class GenerateCatMessageForGuestUserUseCase:
                 if ai_response_id == "":
                     ai_response_id = chunk.get("ai_response_id") or ""
 
-                chunk_body = {
-                    "conversation_id": conversation_id,
-                    "message": chunk.get("message") or "",
-                }
+                result_chunk = GenerateCatMessageForGuestUserUseCaseSuccessResult(
+                    conversation_id=conversation_id,
+                    message=chunk.get("message") or "",
+                )
 
-                yield chunk_body
+                yield result_chunk
 
             ai_responses.append({"role": "assistant", "content": ai_response_message})
 
@@ -148,11 +190,11 @@ class GenerateCatMessageForGuestUserUseCase:
                 ),
             )
 
-            unexpected_error_response_body = {
-                "type": "INTERNAL_SERVER_ERROR",
-                "title": "an unexpected error has occurred.",
-            }
+            unexpected_error = GenerateCatMessageForGuestUserUseCaseErrorResult(
+                type="INTERNAL_SERVER_ERROR",
+                title="an unexpected error has occurred.",
+            )
 
-            yield unexpected_error_response_body
+            yield unexpected_error
         finally:
             self.dto["db_handler"].close()
