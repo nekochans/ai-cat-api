@@ -10,6 +10,7 @@ from domain.repository.cat_message_repository_interface import (
     GenerateMessageForGuestUserDto,
 )
 from infrastructure.db import create_db_connection
+from infrastructure.repository.aiomysql.aiomysql_db_handler import AiomysqlDbHandler
 from infrastructure.repository.guest_users_conversation_history_repository import (
     GuestUsersConversationHistoryRepository,
 )
@@ -68,6 +69,8 @@ class GenerateCatMessageForGuestUserController:
 
         try:
             connection = await create_db_connection()
+
+            db_handler = AiomysqlDbHandler(connection)
 
             repository = GuestUsersConversationHistoryRepository(connection)
 
@@ -143,7 +146,7 @@ class GenerateCatMessageForGuestUserController:
                 )
 
                 # ストリーミングが終了したときに会話履歴をDBに保存する
-                await connection.begin()
+                await db_handler.begin()
 
                 await repository.save_conversation_history(
                     {
@@ -155,7 +158,7 @@ class GenerateCatMessageForGuestUserController:
                     }
                 )
 
-                await connection.commit()
+                await db_handler.commit()
 
                 self.logger.info(
                     "success",
@@ -190,7 +193,7 @@ class GenerateCatMessageForGuestUserController:
 
                 yield format_sse(unexpected_error_response_body)
             finally:
-                connection.close()
+                db_handler.close()
 
         return StreamingResponse(
             generate_cat_message_for_guest_user_stream(),
