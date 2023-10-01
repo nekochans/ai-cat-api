@@ -6,9 +6,6 @@ from presentation.sse import format_sse, generate_error_response
 from domain.cat import CatId
 from domain.unique_id import is_uuid_format, generate_unique_id
 from domain.message import is_message
-from domain.repository.cat_message_repository_interface import (
-    GenerateMessageForGuestUserDto,
-)
 from infrastructure.db import create_db_connection
 from infrastructure.repository.aiomysql.aiomysql_db_handler import AiomysqlDbHandler
 from infrastructure.repository.guest_users_conversation_history_repository import (
@@ -17,7 +14,11 @@ from infrastructure.repository.guest_users_conversation_history_repository impor
 from infrastructure.repository.cat_message_repository import (
     CatMessageRepository,
 )
-from log.logger import AppLogger, SuccessLogExtra, ErrorLogExtra
+from log.logger import AppLogger, ErrorLogExtra
+from usecase.generate_cat_message_for_guest_user_use_case import (
+    GenerateCatMessageForGuestUserUseCase,
+    GenerateCatMessageForGuestUserUseCaseDto,
+)
 
 
 class GenerateCatMessageForGuestUserRequestBody(BaseModel):
@@ -73,14 +74,6 @@ class GenerateCatMessageForGuestUserController:
             db_handler = AiomysqlDbHandler(connection)
 
             repository = GuestUsersConversationHistoryRepository(connection)
-
-            chat_messages = await repository.create_messages_with_conversation_history(
-                {
-                    "conversation_id": conversation_id,
-                    "request_message": self.request_body.message,
-                    "cat_id": self.cat_id,
-                }
-            )
         except Exception as e:
             self.logger.error(
                 f"An error occurred while connecting to the database: {str(e)}",
@@ -107,93 +100,35 @@ class GenerateCatMessageForGuestUserController:
                 headers=response_headers,
             )
 
+        cat_message_repository = CatMessageRepository()
+
+        use_case_dto: GenerateCatMessageForGuestUserUseCaseDto = (
+            GenerateCatMessageForGuestUserUseCaseDto(
+                request_id=unique_id,
+                user_id=self.request_body.userId,
+                cat_id=self.cat_id,
+                message=self.request_body.message,
+                db_handler=db_handler,
+                guest_users_conversation_history_repository=repository,
+                cat_message_repository=cat_message_repository,  # type: ignore
+            )
+        )
+
+        if self.request_body.conversationId is not None:
+            use_case_dto["conversation_id"] = self.request_body.conversationId
+
+        use_case = GenerateCatMessageForGuestUserUseCase(use_case_dto)
+
         async def generate_cat_message_for_guest_user_stream() -> AsyncGenerator[
             str, None
         ]:
-            try:
-                # AIの応答を一時的に保存するためのリスト
-                ai_responses = []
-
-                # AIの応答を結合するための変数
-                ai_response_message = ""
-
-                cat_message_repository = CatMessageRepository()
-
-                create_message_for_guest_user_dto = GenerateMessageForGuestUserDto(
-                    user_id=self.request_body.userId,
-                    chat_messages=chat_messages,
+            async for chunk in use_case.execute():
+                yield format_sse(
+                    GenerateCatMessageForGuestUserResponseBody(
+                        conversationId=chunk["conversation_id"],
+                        message=chunk["message"],
+                    ).model_dump()
                 )
-
-                ai_response_id = ""
-                async for chunk in cat_message_repository.generate_message_for_guest_user(
-                    create_message_for_guest_user_dto
-                ):
-                    # AIの応答を更新
-                    ai_response_message += chunk.get("message") or ""
-
-                    if ai_response_id == "":
-                        ai_response_id = chunk.get("ai_response_id") or ""
-
-                    chunk_body = GenerateCatMessageForGuestUserResponseBody(
-                        conversationId=conversation_id,
-                        message=chunk.get("message") or "",
-                    )
-
-                    yield format_sse(chunk_body.model_dump())
-
-                ai_responses.append(
-                    {"role": "assistant", "content": ai_response_message}
-                )
-
-                # ストリーミングが終了したときに会話履歴をDBに保存する
-                await db_handler.begin()
-
-                await repository.save_conversation_history(
-                    {
-                        "conversation_id": conversation_id,
-                        "cat_id": self.cat_id,
-                        "user_id": self.request_body.userId,
-                        "user_message": self.request_body.message,
-                        "ai_message": ai_response_message,
-                    }
-                )
-
-                await db_handler.commit()
-
-                self.logger.info(
-                    "success",
-                    extra=SuccessLogExtra(
-                        request_id=response_headers["Ai-Meow-Cat-Request-Id"],
-                        conversation_id=conversation_id,
-                        cat_id=self.cat_id,
-                        user_id=self.request_body.userId,
-                        ai_response_id=ai_response_id,
-                    ),
-                )
-            except Exception as e:
-                await connection.rollback()
-
-                self.logger.error(
-                    f"An error occurred while creating the message: {str(e)}",
-                    exc_info=True,
-                    extra=ErrorLogExtra(
-                        request_id=response_headers["Ai-Meow-Cat-Request-Id"],
-                        conversation_id=conversation_id,
-                        cat_id=self.cat_id,
-                        user_id=self.request_body.userId,
-                        user_message=self.request_body.message,
-                    ),
-                )
-
-                unexpected_error_response_body = {
-                    "type": "INTERNAL_SERVER_ERROR",
-                    "title": "an unexpected error has occurred.",
-                    "detail": str(e),
-                }
-
-                yield format_sse(unexpected_error_response_body)
-            finally:
-                db_handler.close()
 
         return StreamingResponse(
             generate_cat_message_for_guest_user_stream(),
