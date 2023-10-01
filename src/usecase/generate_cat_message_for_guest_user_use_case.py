@@ -1,8 +1,5 @@
 from typing import TypedDict, AsyncGenerator, Union, Dict, Any
 from usecase.db_handler_interface import DbHandlerInterface
-from usecase.error.create_messages_with_conversation_history_error import (
-    CreateMessagesWithConversationHistoryError,
-)
 from domain.repository.guest_users_conversation_history_repository_interface import (
     GuestUsersConversationHistoryRepositoryInterface,
 )
@@ -111,10 +108,13 @@ class GenerateCatMessageForGuestUserUseCase:
                 ),
             )
 
-            raise CreateMessagesWithConversationHistoryError(
-                "failed to GuestUsersConversationHistoryRepository.create_messages_with_conversation_history",
-                e,
-            ) from e
+            db_error = GenerateCatMessageForGuestUserUseCaseErrorResult(
+                type="INTERNAL_SERVER_ERROR",
+                title="an unexpected error has occurred.",
+            )
+
+            yield db_error
+            return
 
         try:
             # AIの応答を一時的に保存するためのリスト
