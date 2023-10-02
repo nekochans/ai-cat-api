@@ -1,8 +1,8 @@
 import pytest
 from aiomysql import Connection
 from infrastructure.db import create_db_connection
-from infrastructure.repository.guest_users_conversation_history_repository import (
-    GuestUsersConversationHistoryRepository,
+from infrastructure.repository.aiomysql.aiomysql_guest_users_conversation_history_repository import (
+    AiomysqlGuestUsersConversationHistoryRepository,
     SaveGuestUsersConversationHistoryDto,
 )
 
@@ -34,7 +34,7 @@ async def test_save_conversation_history(create_test_db_connection):
         ai_message="もこちゃんだにゃん🐱テストメッセージだにゃん🐱",
     )
 
-    repository = GuestUsersConversationHistoryRepository(connection)
+    repository = AiomysqlGuestUsersConversationHistoryRepository(connection)
 
     await repository.save_conversation_history(dto)
 
