@@ -83,7 +83,7 @@ class GenerateCatMessageForGuestUserUseCase:
     ) -> AsyncGenerator[GenerateCatMessageForGuestUserUseCaseResult, None]:
         conversation_id: str = self.dto["request_id"]
         if self.dto.get("conversation_id") is not None:
-            conversation_id = self.dto.get("conversation_id")
+            conversation_id = self.dto["conversation_id"]
 
         try:
             chat_messages = await self.dto[
@@ -92,7 +92,7 @@ class GenerateCatMessageForGuestUserUseCase:
                 {
                     "conversation_id": conversation_id,
                     "request_message": self.dto["message"],
-                    "cat_id": self.dto.get("cat_id"),
+                    "cat_id": self.dto["cat_id"],
                 }
             )
         except Exception as e:
@@ -102,9 +102,9 @@ class GenerateCatMessageForGuestUserUseCase:
                 extra=ErrorLogExtra(
                     request_id=self.dto["request_id"],
                     conversation_id=conversation_id,
-                    cat_id=self.dto.get("cat_id"),
-                    user_id=self.dto.get("user_id"),
-                    user_message=self.dto.get("message"),
+                    cat_id=self.dto["cat_id"],
+                    user_id=self.dto["user_id"],
+                    user_message=self.dto["message"],
                 ),
             )
 
@@ -124,7 +124,7 @@ class GenerateCatMessageForGuestUserUseCase:
             ai_response_message = ""
 
             create_message_for_guest_user_dto = GenerateMessageForGuestUserDto(
-                user_id=self.dto.get("user_id"),
+                user_id=self.dto["user_id"],
                 chat_messages=chat_messages,
             )
 
@@ -156,9 +156,9 @@ class GenerateCatMessageForGuestUserUseCase:
             ].save_conversation_history(
                 {
                     "conversation_id": conversation_id,
-                    "cat_id": self.dto.get("cat_id"),
-                    "user_id": self.dto.get("user_id"),
-                    "user_message": self.dto.get("message"),
+                    "cat_id": self.dto["cat_id"],
+                    "user_id": self.dto["user_id"],
+                    "user_message": self.dto["message"],
                     "ai_message": ai_response_message,
                 }
             )
@@ -170,8 +170,8 @@ class GenerateCatMessageForGuestUserUseCase:
                 extra=SuccessLogExtra(
                     request_id=self.dto["request_id"],
                     conversation_id=conversation_id,
-                    cat_id=self.dto.get("cat_id"),
-                    user_id=self.dto.get("user_id"),
+                    cat_id=self.dto["cat_id"],
+                    user_id=self.dto["user_id"],
                     ai_response_id=ai_response_id,
                 ),
             )

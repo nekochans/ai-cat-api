@@ -1,4 +1,4 @@
-from typing import Optional, AsyncGenerator
+from typing import Optional, AsyncGenerator, cast
 from fastapi import status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, field_validator
@@ -18,6 +18,9 @@ from log.logger import AppLogger, ErrorLogExtra
 from usecase.generate_cat_message_for_guest_user_use_case import (
     GenerateCatMessageForGuestUserUseCase,
     GenerateCatMessageForGuestUserUseCaseDto,
+    GenerateCatMessageForGuestUserUseCaseResult,
+    GenerateCatMessageForGuestUserUseCaseErrorResult,
+    GenerateCatMessageForGuestUserUseCaseSuccessResult,
     is_success_result,
     is_error_result,
 )
@@ -129,20 +132,31 @@ class GenerateCatMessageForGuestUserController:
             str, None
         ]:
             async for chunk in use_case.execute():
-                if is_error_result(chunk):
+                use_case_result: GenerateCatMessageForGuestUserUseCaseResult = chunk
+
+                if is_error_result(dict(use_case_result)):
+                    error_result = cast(
+                        GenerateCatMessageForGuestUserUseCaseErrorResult,
+                        use_case_result,
+                    )
                     yield format_sse(
                         GenerateCatMessageForGuestUserErrorResponseBody(
-                            type=chunk["type"],
-                            title=chunk["title"],
+                            type=error_result["type"],
+                            title=error_result["title"],
                         ).model_dump()
                     )
                     continue
 
-                if is_success_result(chunk):
+                if is_success_result(dict(use_case_result)):
+                    success_result = cast(
+                        GenerateCatMessageForGuestUserUseCaseSuccessResult,
+                        use_case_result,
+                    )
+
                     yield format_sse(
                         GenerateCatMessageForGuestUserSuccessResponseBody(
-                            conversationId=chunk["conversation_id"],
-                            message=chunk["message"],
+                            conversationId=success_result["conversation_id"],
+                            message=success_result["message"],
                         ).model_dump()
                     )
                     continue
