@@ -8,11 +8,11 @@ from domain.unique_id import is_uuid_format, generate_unique_id
 from domain.message import is_message
 from infrastructure.db import create_db_connection
 from infrastructure.repository.aiomysql.aiomysql_db_handler import AiomysqlDbHandler
-from infrastructure.repository.guest_users_conversation_history_repository import (
-    GuestUsersConversationHistoryRepository,
+from infrastructure.repository.aiomysql.aiomysql_guest_users_conversation_history_repository import (
+    AiomysqlGuestUsersConversationHistoryRepository,
 )
-from infrastructure.repository.cat_message_repository import (
-    CatMessageRepository,
+from infrastructure.repository.openai.openai_cat_message_repository import (
+    OpenAiCatMessageRepository,
 )
 from log.logger import AppLogger, ErrorLogExtra
 from usecase.generate_cat_message_for_guest_user_use_case import (
@@ -80,7 +80,7 @@ class GenerateCatMessageForGuestUserController:
 
             db_handler = AiomysqlDbHandler(connection)
 
-            repository = GuestUsersConversationHistoryRepository(connection)
+            repository = AiomysqlGuestUsersConversationHistoryRepository(connection)
         except Exception as e:
             self.logger.error(
                 f"An error occurred while connecting to the database: {str(e)}",
@@ -106,7 +106,7 @@ class GenerateCatMessageForGuestUserController:
                 headers=response_headers,
             )
 
-        cat_message_repository = CatMessageRepository()
+        cat_message_repository = OpenAiCatMessageRepository()
 
         use_case_dto: GenerateCatMessageForGuestUserUseCaseDto = (
             GenerateCatMessageForGuestUserUseCaseDto(

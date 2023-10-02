@@ -2,8 +2,8 @@ import pytest
 from aiomysql import Connection
 from domain.cat import get_prompt_by_cat_id
 from infrastructure.db import create_db_connection
-from infrastructure.repository.guest_users_conversation_history_repository import (
-    GuestUsersConversationHistoryRepository,
+from infrastructure.repository.aiomysql.aiomysql_guest_users_conversation_history_repository import (
+    AiomysqlGuestUsersConversationHistoryRepository,
     CreateMessagesWithConversationHistoryDto,
 )
 
@@ -120,7 +120,7 @@ async def test_create_messages_with_conversation_history(create_test_db_connecti
         cat_id="moko",
     )
 
-    repository = GuestUsersConversationHistoryRepository(connection)
+    repository = AiomysqlGuestUsersConversationHistoryRepository(connection)
 
     chat_messages = await repository.create_messages_with_conversation_history(dto)
 

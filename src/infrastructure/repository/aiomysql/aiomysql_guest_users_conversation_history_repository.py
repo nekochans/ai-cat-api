@@ -9,7 +9,7 @@ from domain.repository.guest_users_conversation_history_repository_interface imp
 from infrastructure.openai import calculate_token_count, is_token_limit_exceeded
 
 
-class GuestUsersConversationHistoryRepository:
+class AiomysqlGuestUsersConversationHistoryRepository:
     def __init__(self, connection: aiomysql.Connection) -> None:
         self.connection = connection
 

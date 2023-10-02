@@ -7,7 +7,7 @@ from domain.repository.cat_message_repository_interface import (
 )
 
 
-class CatMessageRepository:
+class OpenAiCatMessageRepository:
     def __init__(self) -> None:
         self.OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 
