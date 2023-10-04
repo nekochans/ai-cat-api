@@ -15,5 +15,5 @@ class MockCatMessageRepository:
         for message in messages:
             await asyncio.sleep(0.5)
             yield GenerateMessageForGuestUserResult(
-                ai_response_id="mocked-ai-response-id", message=message
+                ai_response_id="chatcmpl-abcdefghijklmnopqrstuvwxyz001", message=message
             )
