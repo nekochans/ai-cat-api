@@ -2,16 +2,19 @@ import os
 from typing import AsyncGenerator
 from openai import ChatCompletion
 from domain.repository.cat_message_repository_interface import (
+    CatMessageRepositoryInterface,
     GenerateMessageForGuestUserDto,
     GenerateMessageForGuestUserResult,
 )
 
 
-class OpenAiCatMessageRepository:
+class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
     def __init__(self) -> None:
         self.OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 
-    async def generate_message_for_guest_user(
+    # TODO: 型は合っているのに型チェックエラーが出る mypy が AsyncGenerator に対応していない可能性がある
+    # TODO: https://github.com/nekochans/ai-cat-api/issues/68 で別の型チェックツールを試してみる
+    async def generate_message_for_guest_user(  # type: ignore
         self, dto: GenerateMessageForGuestUserDto
     ) -> AsyncGenerator[GenerateMessageForGuestUserResult, None]:
         response = await ChatCompletion.acreate(

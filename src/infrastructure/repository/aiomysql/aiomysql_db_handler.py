@@ -1,7 +1,8 @@
 import aiomysql
+from usecase.db_handler_interface import DbHandlerInterface
 
 
-class AiomysqlDbHandler:
+class AiomysqlDbHandler(DbHandlerInterface):
     def __init__(self, connection: aiomysql.Connection) -> None:
         self.connection = connection
 
