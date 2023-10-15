@@ -34,3 +34,27 @@ async def test_execute_success_with_only_required_params():
         assert "message" in result
         assert result["conversation_id"] == "test-request-id"
         assert result["message"] == expectedMessages[i]
+
+
+@pytest.mark.asyncio
+async def test_execute_success_with_all_params():
+    dto = GenerateCatMessageForGuestUserUseCaseDto(
+        request_id="test-request-id",
+        user_id="test-user-id",
+        cat_id="moko",
+        message="test-message",
+        db_handler=MockDbHandler(),
+        guest_users_conversation_history_repository=MockGuestUsersConversationHistoryRepository(),
+        cat_message_repository=MockCatMessageRepository(),
+        conversation_id="test-conversation-id",
+    )
+
+    use_case = GenerateCatMessageForGuestUserUseCase(dto)
+
+    expectedMessages = ["はじめましてだにゃん", "🐱", "何かお手伝いできる事はないにゃんか？"]
+
+    async for i, result in asyncstdlib.enumerate(use_case.execute()):
+        assert "conversation_id" in result
+        assert "message" in result
+        assert result["conversation_id"] == "test-conversation-id"
+        assert result["message"] == expectedMessages[i]
