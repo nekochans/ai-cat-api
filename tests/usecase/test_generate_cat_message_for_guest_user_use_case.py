@@ -58,3 +58,55 @@ async def test_execute_success_with_all_params():
         assert "message" in result
         assert result["conversation_id"] == "test-conversation-id"
         assert result["message"] == expectedMessages[i]
+
+
+@pytest.mark.asyncio
+async def test_execute_error_failed_to_create_messages_with_conversation_history():
+    dto = GenerateCatMessageForGuestUserUseCaseDto(
+        request_id="test-request-id",
+        user_id="test-user-id",
+        cat_id="moko",
+        message="ERROR",
+        db_handler=MockDbHandler(),
+        guest_users_conversation_history_repository=MockGuestUsersConversationHistoryRepository(),
+        cat_message_repository=MockCatMessageRepository(),
+        conversation_id="test-conversation-id",
+    )
+
+    use_case = GenerateCatMessageForGuestUserUseCase(dto)
+
+    async for result in use_case.execute():
+        assert "title" in result
+        assert "type" in result
+        assert result["title"] == "an unexpected error has occurred."
+        assert result["type"] == "INTERNAL_SERVER_ERROR"
+
+
+@pytest.mark.asyncio
+async def test_execute_error_failed_to_save_conversation_history():
+    dto = GenerateCatMessageForGuestUserUseCaseDto(
+        request_id="test-request-id",
+        user_id="test-user-id",
+        cat_id="moko",
+        message="ねこちゃんこんにちは🐱",
+        db_handler=MockDbHandler(),
+        guest_users_conversation_history_repository=MockGuestUsersConversationHistoryRepository(),
+        cat_message_repository=MockCatMessageRepository(),
+        conversation_id="ERROR",
+    )
+
+    use_case = GenerateCatMessageForGuestUserUseCase(dto)
+
+    expectedMessages = ["はじめましてだにゃん", "🐱", "何かお手伝いできる事はないにゃんか？"]
+
+    async for i, result in asyncstdlib.enumerate(use_case.execute()):
+        if i == 3:
+            assert "title" in result
+            assert "type" in result
+            assert result["title"] == "an unexpected error has occurred."
+            assert result["type"] == "INTERNAL_SERVER_ERROR"
+        else:
+            assert "conversation_id" in result
+            assert "message" in result
+            assert result["conversation_id"] == "ERROR"
+            assert result["message"] == expectedMessages[i]
