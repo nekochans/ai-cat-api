@@ -16,10 +16,10 @@ from infrastructure.repository.mock.mock_cat_message_repository import (
 @pytest.mark.asyncio
 async def test_execute_success_with_only_required_params():
     dto = GenerateCatMessageForGuestUserUseCaseDto(
-        request_id="test-request-id",
-        user_id="test-user-id",
+        request_id="dummy000-0000-0000-0000-requestid000",
+        user_id="dummy000-user-id00-0000-000000000000",
         cat_id="moko",
-        message="test-message",
+        message="ねこちゃんこんにちは🐱",
         db_handler=MockDbHandler(),
         guest_users_conversation_history_repository=MockGuestUsersConversationHistoryRepository(),
         cat_message_repository=MockCatMessageRepository(),
@@ -32,21 +32,21 @@ async def test_execute_success_with_only_required_params():
     async for i, result in asyncstdlib.enumerate(use_case.execute()):
         assert "conversation_id" in result
         assert "message" in result
-        assert result["conversation_id"] == "test-request-id"
+        assert result["conversation_id"] == "dummy000-0000-0000-0000-requestid000"
         assert result["message"] == expectedMessages[i]
 
 
 @pytest.mark.asyncio
 async def test_execute_success_with_all_params():
     dto = GenerateCatMessageForGuestUserUseCaseDto(
-        request_id="test-request-id",
-        user_id="test-user-id",
+        request_id="dummy000-0000-0000-0000-requestid000",
+        user_id="dummy000-user-id00-0000-000000000000",
         cat_id="moko",
-        message="test-message",
+        message="ねこちゃんこんにちは🐱",
         db_handler=MockDbHandler(),
         guest_users_conversation_history_repository=MockGuestUsersConversationHistoryRepository(),
         cat_message_repository=MockCatMessageRepository(),
-        conversation_id="test-conversation-id",
+        conversation_id="dummyid0-0000-0000-0000-conversation",
     )
 
     use_case = GenerateCatMessageForGuestUserUseCase(dto)
@@ -56,21 +56,21 @@ async def test_execute_success_with_all_params():
     async for i, result in asyncstdlib.enumerate(use_case.execute()):
         assert "conversation_id" in result
         assert "message" in result
-        assert result["conversation_id"] == "test-conversation-id"
+        assert result["conversation_id"] == "dummyid0-0000-0000-0000-conversation"
         assert result["message"] == expectedMessages[i]
 
 
 @pytest.mark.asyncio
 async def test_execute_error_failed_to_create_messages_with_conversation_history():
     dto = GenerateCatMessageForGuestUserUseCaseDto(
-        request_id="test-request-id",
-        user_id="test-user-id",
+        request_id="dummy000-0000-0000-0000-requestid000",
+        user_id="dummy000-user-id00-0000-000000000000",
         cat_id="moko",
         message="ERROR",
         db_handler=MockDbHandler(),
         guest_users_conversation_history_repository=MockGuestUsersConversationHistoryRepository(),
         cat_message_repository=MockCatMessageRepository(),
-        conversation_id="test-conversation-id",
+        conversation_id="dummyid0-0000-0000-0000-conversation",
     )
 
     use_case = GenerateCatMessageForGuestUserUseCase(dto)
@@ -85,8 +85,8 @@ async def test_execute_error_failed_to_create_messages_with_conversation_history
 @pytest.mark.asyncio
 async def test_execute_error_failed_to_save_conversation_history():
     dto = GenerateCatMessageForGuestUserUseCaseDto(
-        request_id="test-request-id",
-        user_id="test-user-id",
+        request_id="dummy000-0000-0000-0000-requestid000",
+        user_id="dummy000-user-id00-0000-000000000000",
         cat_id="moko",
         message="ねこちゃんこんにちは🐱",
         db_handler=MockDbHandler(),
