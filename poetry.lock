@@ -196,6 +196,21 @@ files = [
 ]
 
 [[package]]
+name = "asyncstdlib"
+version = "3.10.9"
+description = "The missing async toolbox"
+optional = false
+python-versions = "~=3.6"
+files = [
+    {file = "asyncstdlib-3.10.9-py3-none-any.whl", hash = "sha256:2325840babe05a717ea6f03ae71a5bb7e93786e0d1df1d60aeb8069aac6746cc"},
+    {file = "asyncstdlib-3.10.9.tar.gz", hash = "sha256:c5de1bf1c60de1203a9b135058dcfea7de2507d321e56279baca0905cd8628cd"},
+]
+
+[package.extras]
+doc = ["sphinx", "sphinxcontrib-trio"]
+test = ["black", "coverage", "flake8", "flake8-2020", "flake8-bugbear", "mypy", "pytest", "pytest-cov"]
+
+[[package]]
 name = "attrs"
 version = "23.1.0"
 description = "Classes Without Boilerplate"
@@ -1293,4 +1308,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "0116bb161220103c03a2d2c659edd619cd9f3f1069548160b6fce26c7c3ab867"
+content-hash = "76dba44fdd28faadc3898311c2fbbf6c7e5b8555692b63fa105b6bbb035b7cda"

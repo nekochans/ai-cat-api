@@ -10,7 +10,7 @@ typecheck:
 	poetry run python -m mypy --strict
 
 test:
-	poetry run python -m pytest -v
+	poetry run python -m pytest -vv
 
 ci: test typecheck
 	poetry run flake8 .

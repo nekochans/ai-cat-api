@@ -119,7 +119,7 @@ class GenerateCatMessageForGuestUserController:
                 message=self.request_body.message,
                 db_handler=db_handler,
                 guest_users_conversation_history_repository=repository,
-                cat_message_repository=cat_message_repository,  # type: ignore
+                cat_message_repository=cat_message_repository,
             )
         )
 

@@ -3,13 +3,16 @@ import aiomysql
 from domain.cat import get_prompt_by_cat_id
 from domain.message import ChatMessage
 from domain.repository.guest_users_conversation_history_repository_interface import (
+    GuestUsersConversationHistoryRepositoryInterface,
     CreateMessagesWithConversationHistoryDto,
     SaveGuestUsersConversationHistoryDto,
 )
 from infrastructure.openai import calculate_token_count, is_token_limit_exceeded
 
 
-class AiomysqlGuestUsersConversationHistoryRepository:
+class AiomysqlGuestUsersConversationHistoryRepository(
+    GuestUsersConversationHistoryRepositoryInterface
+):
     def __init__(self, connection: aiomysql.Connection) -> None:
         self.connection = connection
 
