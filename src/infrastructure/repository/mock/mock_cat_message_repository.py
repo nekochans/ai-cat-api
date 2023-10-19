@@ -13,6 +13,9 @@ class MockCatMessageRepository(CatMessageRepositoryInterface):
     ) -> AsyncGenerator[GenerateMessageForGuestUserResult, None]:
         messages = ["はじめましてだにゃん", "🐱", "何かお手伝いできる事はないにゃんか？"]
 
+        if dto["user_id"] == "dummy999-user-id99-9999-error9999999":
+            raise Exception("An error occurred while generating message.")
+
         for message in messages:
             await asyncio.sleep(0.5)
             yield GenerateMessageForGuestUserResult(

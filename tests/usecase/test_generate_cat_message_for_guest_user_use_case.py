@@ -110,3 +110,25 @@ async def test_execute_error_failed_to_save_conversation_history():
             assert "message" in result
             assert result["conversation_id"] == "ERROR"
             assert result["message"] == expectedMessages[i]
+
+
+@pytest.mark.asyncio
+async def test_execute_error_failed_to_generate_message_for_guest_user():
+    dto = GenerateCatMessageForGuestUserUseCaseDto(
+        request_id="dummy000-0000-0000-0000-requestid000",
+        user_id="dummy999-user-id99-9999-error9999999",
+        cat_id="moko",
+        message="ねこちゃんこんにちは🐱",
+        db_handler=MockDbHandler(),
+        guest_users_conversation_history_repository=MockGuestUsersConversationHistoryRepository(),
+        cat_message_repository=MockCatMessageRepository(),
+        conversation_id="dummyid0-0000-0000-0000-conversation",
+    )
+
+    use_case = GenerateCatMessageForGuestUserUseCase(dto)
+
+    async for result in use_case.execute():
+        assert "title" in result
+        assert "type" in result
+        assert result["title"] == "an unexpected error has occurred."
+        assert result["type"] == "INTERNAL_SERVER_ERROR"
