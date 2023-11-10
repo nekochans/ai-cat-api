@@ -18,7 +18,7 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
         self, dto: GenerateMessageForGuestUserDto
     ) -> AsyncGenerator[GenerateMessageForGuestUserResult, None]:
         response = await ChatCompletion.acreate(
-            model="gpt-3.5-turbo-0613",
+            model="gpt-3.5-turbo-1106",
             messages=dto.get("chat_messages"),
             stream=True,
             api_key=self.OPENAI_API_KEY,
