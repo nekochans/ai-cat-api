@@ -1,0 +1,22 @@
+version: "3.9"
+services:
+  ai-cat-api:
+    build: .
+    ports:
+      - "5002:5000"
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      BASIC_AUTH_USERNAME: ${BASIC_AUTH_USERNAME}
+      BASIC_AUTH_PASSWORD: ${BASIC_AUTH_PASSWORD}
+      DB_HOST: ${DB_HOST}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+    volumes:
+      - ./.flake8:/.flake8
+      - ./Makefile:/Makefile
+      - ./pyproject.toml:/pyproject.toml
+      - ./poetry.lock:/poetry.lock
+      - ./src:/src
+      - ./tests:/tests
+    command: uvicorn main:app --reload --host 0.0.0.0 --port 5000
