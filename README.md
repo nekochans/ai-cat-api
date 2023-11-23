@@ -128,6 +128,7 @@ make run
 以下で動作確認が可能です。
 
 ```bash
+API_CREDENTIAL=`echo -n "$BASIC_AUTH_USERNAME:$BASIC_AUTH_PASSWORD" | base64`
 curl -v -N \
 -X POST \
 -H "Content-Type: application/json" \
@@ -138,25 +139,53 @@ curl -v -N \
   "userId": "6a17f37c-996e-7782-fefd-d71eb7eaaa37",
   "message": "こんにちはもこちゃん🐱"
 }' \
-http://0.0.0.0:8000/cats/moko/streaming-messages
+http://0.0.0.0:8000/cats/moko/messages-for-guest-users
 ```
 
-### コンテナでの起動方法
+## 各コマンドの説明
+
+`poetry shell` で仮想環境をアクティベートした状態で利用出来る様々なコマンドを解説します。
+
+### Linterを実行
 
 ```bash
-# Build
-docker build -t ai-cat-api .
-
-# コンテナを起動
-docker container run -d -p 5002:5000 -e OPENAI_API_KEY=$OPENAI_API_KEY -e API_CREDENTIAL=$API_CREDENTIAL -e DB_HOST=$DB_HOST -e DB_NAME=$DB_NAME -e DB_USERNAME=$DB_USERNAME -e DB_PASSWORD=$DB_PASSWORD ai-cat-api
-
-## コンテナの中に入りたい場合は↓のようにする
-docker exec -it {コンテナIDを指定} bash
+make lint
 ```
 
-以下のようにコンテナに対してHTTPリクエストを送信する事で動作確認を実施します。
+### Formatterを実行
 
 ```bash
+make format
+```
+
+### テストコードの実行
+
+```bash
+make test
+```
+
+### typecheckの実行
+
+```bash
+make typecheck
+```
+
+## Dockerによる環境構築
+
+[Docker Desktop](https://www.docker.com/products/docker-desktop/) もしくは [OrbStack](https://orbstack.dev/) がインストールされている場合はDockerによる環境構築も可能です。
+
+以下のコマンドでコンテナを起動します。
+
+```bash
+docker compose up --build -d
+```
+
+※ 2回目以降は `docker compose up -d` だけで大丈夫です。
+
+以下のコマンドを実行してSSEのレスポンスが返ってくれば正常動作しています。
+
+```bash
+API_CREDENTIAL=`echo -n "$BASIC_AUTH_USERNAME:$BASIC_AUTH_PASSWORD" | base64`
 curl -v -N \
 -X POST \
 -H "Content-Type: application/json" \
@@ -167,7 +196,61 @@ curl -v -N \
   "userId": "6a17f37c-996e-7782-fefd-d71eb7eaaa37",
   "message": "こんにちはもこちゃん🐱"
 }' \
-http://localhost:5002/cats/moko/streaming-messages
+http://localhost:5002/cats/moko/messages-for-guest-users
+```
+
+コンテナの中に入る場合は以下を実行します。
+
+```bash
+docker compose exec ai-cat-api bash
+```
+
+これでコンテナ内でテスト等のコマンドを実行可能です。
+
+### コンテナ内での `make` コマンド利用の注意点
+
+一点注意点があります。
+
+コンテナ内のカレントディレクトリは `/src` になっています。
+
+その為、ここで `make test` 等を実行しても上手く行きません。
+
+以下のコマンドで `/` に移動します。
+
+```bash
+cd /
+```
+
+その上で `make test` 等を実行する必要があります。
+
+これは結構面倒だと思うのでコンテナ内で各タスクを実行する為のタスクを用意しました。
+
+```bash
+# コンテナ内でLinterを実行
+make lint-container
+
+# コンテナ内でFormatterを実行
+make format-container
+
+# コンテナ内でテストコードを実行
+make test-container
+
+# コンテナ内でtypecheckを実行
+make run-token-creator-container
+```
+
+### コンテナの停止
+
+以下でコンテナを停止します。
+
+```bash
+docker compose down
+```
+
+もしも `Dockerfile` や `docker-compose.yml` に変更があった場合は以下のコマンドでコンテナを完全に廃棄してから再度 `docker compose up --build -d` を実行するようにお願いします。
+
+```bash
+docker compose down --rmi all --volumes --remove-orphans
 ```
 
 ## デプロイについて
