@@ -239,6 +239,16 @@ make test-container
 make run-token-creator-container
 ```
 
+### コンテナ内のMySQLに接続する
+
+以下で接続が可能です。
+
+```bash
+mysql -u root -h 127.0.0.1 -p -P 33060
+```
+
+パスワードは `docker-compose.yml` の `MYSQL_ROOT_PASSWORD` に記載してある値です。
+
 ### コンテナの停止
 
 以下でコンテナを停止します。
