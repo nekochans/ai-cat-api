@@ -19,7 +19,7 @@ format-container:
 	docker compose exec ai-cat-api bash -c "cd / && poetry run black src/ tests/"
 
 test-container:
-	docker compose exec ai-cat-api bash -c "cd / && poetry run python -m pytest -vv"
+	docker compose exec ai-cat-api bash -c "cd / && poetry run python -m pytest -vv -s"
 
 typecheck-container:
 	docker compose exec ai-cat-api bash -c "cd / && poetry run python -m mypy --strict"
