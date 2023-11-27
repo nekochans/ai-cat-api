@@ -8,16 +8,18 @@ ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
 ctx.load_verify_locations(cafile=os.getenv("SSL_CERT_PATH"))
 
 
-async def create_db_connection() -> Connection:
+async def create_db_connection(db_name="") -> Connection:
     loop = asyncio.get_event_loop()
+
+    use_db_name = db_name if db_name != "" else os.getenv("DB_NAME")
 
     if os.getenv("IS_TESTING") == "1":
         connection = await aiomysql.connect(
-            host=os.getenv("DB_HOST"),
+            host="ai-cat-api-mysql",
             port=3306,
-            user=os.getenv("DB_USERNAME"),
+            user="root",
             password=os.getenv("DB_PASSWORD"),
-            db=os.getenv("DB_NAME"),
+            db=use_db_name,
             loop=loop,
             cursorclass=aiomysql.DictCursor,
         )
