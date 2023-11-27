@@ -1,6 +1,6 @@
 import pytest
-import os
 from aiomysql import Connection
+from tests.db.setup_test_database import setup_test_database
 from domain.cat import get_prompt_by_cat_id
 from infrastructure.db import create_db_connection
 from infrastructure.repository.aiomysql.aiomysql_guest_users_conversation_history_repository import (
@@ -12,6 +12,10 @@ from infrastructure.repository.aiomysql.aiomysql_guest_users_conversation_histor
 @pytest.fixture
 async def create_test_db_connection() -> Connection:
     connection = await create_db_connection()
+
+    await setup_test_database(
+        connection, "test_create_messages_with_conversation_history"
+    )
 
     async with connection.cursor() as cursor:
         await cursor.execute("TRUNCATE TABLE guest_users_conversation_histories")
