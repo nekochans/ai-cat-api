@@ -11,8 +11,6 @@ from infrastructure.repository.aiomysql.aiomysql_guest_users_conversation_histor
 
 @pytest.fixture
 async def create_test_db_connection() -> Connection:
-    os.environ["IS_TESTING"] = "1"
-
     connection = await create_db_connection()
 
     async with connection.cursor() as cursor:
