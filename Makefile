@@ -10,7 +10,7 @@ typecheck:
 	poetry run python -m mypy --strict
 
 test:
-	poetry run python -m pytest -vv
+	poetry run python -m pytest -vv -s
 
 lint-container:
 	docker compose exec ai-cat-api bash -c "cd / && poetry run flake8 src/ tests/"
