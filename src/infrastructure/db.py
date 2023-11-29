@@ -11,9 +11,9 @@ ctx.load_verify_locations(cafile=os.getenv("SSL_CERT_PATH"))
 async def create_db_connection(db_name="") -> Connection:
     loop = asyncio.get_event_loop()
 
-    use_db_name = db_name if db_name != "" else os.getenv("DB_NAME")
-
     if os.getenv("IS_TESTING") == "1":
+        use_db_name = db_name if db_name != "ai_cat_api_test" else os.getenv("DB_NAME")
+
         connection = await aiomysql.connect(
             host="ai-cat-api-mysql",
             port=3306,
