@@ -23,6 +23,11 @@ export DB_NAME=PlanetScaleのデータベース名を指定
 export DB_USERNAME=PlanetScaleのデータベースユーザー名を指定
 export DB_PASSWORD=PlanetScaleのデータベースパスワードを指定
 export SSL_CERT_PATH=`SSL_CERT_PATH` についてを参照
+export PLANET_SCALE_SERVICE_TOKEN_ID=`PLANET_SCALE_` から始まる環境変数についてを参照
+export PLANET_SCALE_SERVICE_TOKEN_SECRET=`PLANET_SCALE_` から始まる環境変数についてを参照
+export PLANET_SCALE_ORG=PlanetScaleの組織名を指定
+export PLANET_SCALE_TEST_DB_NAME=参照するPlanetScaleのデータベース名を指定
+export PLANET_SCALE_TEST_DB_BRANCH=参照するPlanetScaleのデータベースBranch名を指定
 ```
 
 #### `SSL_CERT_PATH` について
@@ -30,6 +35,20 @@ export SSL_CERT_PATH=`SSL_CERT_PATH` についてを参照
 `SSL_CERT_PATH` はSSL証明書のパスを指定します。
 
 以下のコマンドで証明書の場所を特定出来ます。
+
+### `PLANET_SCALE_` から始まる環境変数について
+
+データベースのテストの速度低下を回避する為に PlanetScaleの以下のAPIを利用して取得したDBSchemaを使ってMySQLのコンテナにテスト用のテーブルを作成しています。
+
+https://api-docs.planetscale.com/reference/get-a-branch-schema
+
+`PLANET_SCALE_SERVICE_TOKEN_ID` と `PLANET_SCALE_SERVICE_TOKEN_SECRET` はAPIの認証情報となります。
+
+必要なスコープは https://api-docs.planetscale.com/reference/get-a-branch-schema を参照してください。
+
+Service tokensの発行方法は下記のドキュメントに記載されています。
+
+https://api-docs.planetscale.com/reference/service-tokens
 
 ```bash
 openssl version -d
@@ -247,7 +266,7 @@ make run-token-creator-container
 mysql -u root -h 127.0.0.1 -p -P 33060
 ```
 
-パスワードは `docker-compose.yml` の `MYSQL_ROOT_PASSWORD` に記載してある値です。
+パスワードは `DB_PASSWORD` に設定してある値です。
 
 ### コンテナの停止
 
