@@ -10,7 +10,7 @@ typecheck:
 	poetry run python -m mypy --strict
 
 test:
-	poetry run python -m pytest -vv
+	poetry run python -m pytest -vv -s
 
 lint-container:
 	docker compose exec ai-cat-api bash -c "cd / && poetry run flake8 src/ tests/"
@@ -19,7 +19,7 @@ format-container:
 	docker compose exec ai-cat-api bash -c "cd / && poetry run black src/ tests/"
 
 test-container:
-	docker compose exec ai-cat-api bash -c "cd / && poetry run python -m pytest -vv"
+	docker compose exec ai-cat-api bash -c "cd / && poetry run python -m pytest -vv -s"
 
 typecheck-container:
 	docker compose exec ai-cat-api bash -c "cd / && poetry run python -m mypy --strict"

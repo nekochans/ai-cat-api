@@ -8,12 +8,15 @@ on:
     branches: [ main ]
 
 env:
-  PYTHON_VERSION: '3.11'
-  DB_HOST: ${{ secrets.DB_HOST }}
-  DB_NAME: ${{ secrets.DB_NAME }}
-  DB_USERNAME: ${{ secrets.DB_USERNAME }}
+  DB_HOST: ai-cat-api-mysql
+  DB_NAME: ai_cat_api_test
+  DB_USERNAME: root
   DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-  SSL_CERT_PATH: '/etc/ssl/certs/ca-certificates.crt'
+  PLANET_SCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANET_SCALE_SERVICE_TOKEN_ID }}
+  PLANET_SCALE_SERVICE_TOKEN_SECRET: ${{ secrets.PLANET_SCALE_SERVICE_TOKEN_SECRET }}
+  PLANET_SCALE_ORG: ${{ secrets.PLANET_SCALE_ORG }}
+  PLANET_SCALE_TEST_DB_NAME: ${{ secrets.PLANET_SCALE_TEST_DB_NAME }}
+  PLANET_SCALE_TEST_DB_BRANCH: ${{ secrets.PLANET_SCALE_TEST_DB_BRANCH }}
 
 jobs:
   ci:
@@ -21,23 +24,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Install Poetry
+      - name: Docker set up
         run: |
-          pipx install poetry
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: poetry
-          cache-dependency-path: poetry.lock
-      - name: Set Poetry environment
+          docker compose up --build -d
+      - name: run CI
         run: |
-          poetry env use ${{ env.PYTHON_VERSION }}
-      - name: Install dependencies
-        run: |
-          poetry install --no-root
-      - name: Install CA Certificates
-        run: sudo apt-get update && sudo apt-get install -y ca-certificates
-      - name: Run
-        run: |
-          make ci
+          make lint-container
+          make typecheck-container
+          make test-container

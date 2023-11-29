@@ -23,6 +23,8 @@ pytest = "^7.4.1"
 pytest-asyncio = "^0.21.1"
 mypy = "^1.5.1"
 asyncstdlib = "^3.10.9"
+pytest-env = "^1.1.1"
+pytest-xdist = "^3.5.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -31,6 +33,10 @@ build-backend = "poetry.core.masonry.api"
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+env = [
+    "IS_TESTING=1",
+]
+addopts = "-n auto"
 
 [tool.mypy]
 files = "src/"
