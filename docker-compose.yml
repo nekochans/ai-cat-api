@@ -35,8 +35,8 @@ services:
     environment:
       MYSQL_DATABASE: ai_cat_api_test
       MYSQL_USER: ai_cat_api_test
-      MYSQL_PASSWORD: dbPassword(888
-      MYSQL_ROOT_PASSWORD: dbRootPassword(888
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       TZ: UTC
     ports:
       - "33060:3306"
