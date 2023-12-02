@@ -1,10 +1,10 @@
-.PHONY: lint format ci
+.PHONY: lint format typecheck lint-container format-container test-container typecheck-container ci run
 
 lint:
-	flake8 .
+	poetry run flake8 src/ tests/
 
 format:
-	black .
+	poetry run black src/ tests/
 
 typecheck:
 	poetry run python -m mypy --strict
