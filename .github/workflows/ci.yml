@@ -29,6 +29,4 @@ jobs:
           docker compose up --build -d
       - name: run CI
         run: |
-          make lint-container
-          make typecheck-container
-          make test-container
+          make ci
