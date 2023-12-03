@@ -1,16 +1,13 @@
-.PHONY: lint format ci
+.PHONY: lint format typecheck lint-container format-container test-container typecheck-container ci run
 
 lint:
-	flake8 .
+	poetry run flake8 src/ tests/
 
 format:
-	black .
+	poetry run black src/ tests/
 
 typecheck:
 	poetry run python -m mypy --strict
-
-test:
-	poetry run python -m pytest -vv -s
 
 lint-container:
 	docker compose exec ai-cat-api bash -c "cd / && poetry run flake8 src/ tests/"
@@ -24,9 +21,7 @@ test-container:
 typecheck-container:
 	docker compose exec ai-cat-api bash -c "cd / && poetry run python -m mypy --strict"
 
-ci: test typecheck
-	poetry run flake8 .
-	poetry run black --check .
+ci: lint-container typecheck-container test-container
 
 run:
 	python src/main.py

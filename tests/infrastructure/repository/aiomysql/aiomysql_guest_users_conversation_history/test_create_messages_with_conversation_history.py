@@ -1,6 +1,7 @@
 import pytest
+from typing import Tuple
 from aiomysql import Connection
-from tests.db.setup_test_database import setup_test_database
+from tests.db.setup_test_database import setup_test_database, create_test_db_name
 from domain.cat import get_prompt_by_cat_id
 from infrastructure.db import create_db_connection
 from infrastructure.repository.aiomysql.aiomysql_guest_users_conversation_history_repository import (
@@ -10,11 +11,14 @@ from infrastructure.repository.aiomysql.aiomysql_guest_users_conversation_histor
 
 
 @pytest.fixture
-async def create_test_db_connection() -> Connection:
+async def create_test_db_connection() -> Tuple[Connection, str]:
+    test_db_name = create_test_db_name()
+
     connection = await create_db_connection()
 
     await setup_test_database(
-        connection, "test_create_messages_with_conversation_history"
+        connection,
+        test_db_name,
     )
 
     async with connection.cursor() as cursor:
@@ -110,12 +114,12 @@ async def create_test_db_connection() -> Connection:
         )
     await connection.commit()
 
-    return connection
+    return connection, test_db_name
 
 
 @pytest.mark.asyncio
 async def test_create_messages_with_conversation_history(create_test_db_connection):
-    connection = await create_test_db_connection
+    connection, test_db_name = await create_test_db_connection
 
     conversation_id = "aaaaaaaa-bbbb-cccc-dddd-000000000001"
 

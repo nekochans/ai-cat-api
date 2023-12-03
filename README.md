@@ -179,8 +179,12 @@ make format
 
 ### テストコードの実行
 
+テストコードの実行はDockerコンテナを立ち上げる必要があります。
+
+このREADME内の「Dockerによる環境構築」を参考にコンテナを起動してから下記を実行します。
+
 ```bash
-make test
+make test-container
 ```
 
 ### typecheckの実行
@@ -232,7 +236,7 @@ docker compose exec ai-cat-api bash
 
 コンテナ内のカレントディレクトリは `/src` になっています。
 
-その為、ここで `make test` 等を実行しても上手く行きません。
+その為、ここで `make lint` 等を実行しても上手く行きません。
 
 以下のコマンドで `/` に移動します。
 
@@ -240,7 +244,7 @@ docker compose exec ai-cat-api bash
 cd /
 ```
 
-その上で `make test` 等を実行する必要があります。
+その上で `make lint` 等を実行する必要があります。
 
 これは結構面倒だと思うのでコンテナ内で各タスクを実行する為のタスクを用意しました。
 
@@ -250,9 +254,6 @@ make lint-container
 
 # コンテナ内でFormatterを実行
 make format-container
-
-# コンテナ内でテストコードを実行
-make test-container
 
 # コンテナ内でtypecheckを実行
 make run-token-creator-container
@@ -280,6 +281,24 @@ docker compose down
 
 ```bash
 docker compose down --rmi all --volumes --remove-orphans
+```
+
+## テストコードの作成について
+
+GitHubActions上のテストコードは並列実行されています。
+
+その為、固定のDB名を用いたテストコードだとテストが失敗する可能性があります。
+
+既存テストコードを参考にテストケース毎にユニークなDB名を生成するようにお願いします。（`tests/db/setup_test_database.py` の `create_test_db_name` を利用します）
+
+ローカルのMySQLコンテナにはどんどんテスト用のデータベースが作成されてしまうので、定期的に以下を実行してコンテナを作り直す事を推奨します。
+
+```bash
+# 一度コンテナを削除（MySQLのコンテナ内のデータも含めて削除）
+docker compose down --rmi all --volumes --remove-orphans
+
+# 再度コンテナを立ち上げる
+docker compose up --build -d
 ```
 
 ## デプロイについて

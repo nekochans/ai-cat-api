@@ -1,5 +1,6 @@
 import os
 import requests
+import uuid
 from typing import TypedDict, List
 from aiomysql import Connection
 
@@ -44,3 +45,7 @@ async def setup_test_database(connection: Connection, db_name: str) -> None:
         for table in branch_schemas["data"]:
             create_table_sql = table["raw"].replace("\n", " ").replace("\t", " ")
             await cursor.execute(create_table_sql)
+
+
+def create_test_db_name() -> str:
+    return f"test_db_{uuid.uuid4().hex[:8]}"
