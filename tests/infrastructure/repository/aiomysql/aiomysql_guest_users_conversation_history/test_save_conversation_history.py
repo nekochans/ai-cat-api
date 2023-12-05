@@ -55,5 +55,3 @@ async def test_save_conversation_history(create_test_db_connection):
     assert result["user_id"] == user_id
     assert result["user_message"] == dto.get("user_message")
     assert result["ai_message"] == dto.get("ai_message")
-
-    create_test_db_connection.close()
