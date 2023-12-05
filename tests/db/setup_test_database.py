@@ -3,6 +3,7 @@ import requests
 import uuid
 from typing import TypedDict, List
 from aiomysql import Connection
+from functools import lru_cache
 
 
 class TableSchema(TypedDict):
@@ -16,6 +17,7 @@ class BranchSchemas(TypedDict):
     data: List[TableSchema]
 
 
+@lru_cache()
 def fetch_db_branch_schemas() -> BranchSchemas:
     org = os.getenv("PLANET_SCALE_ORG")
     db = os.getenv("PLANET_SCALE_TEST_DB_NAME")
