@@ -150,12 +150,4 @@ async def test_create_messages_with_conversation_history(create_test_db_connecti
         {"role": "user", "content": "いっしょに白いごはんを食べよう！"},
     ]
 
-    assert len(chat_messages) == len(expected), "Length mismatch"
-
-    for i in range(len(chat_messages)):
-        assert (
-            chat_messages[i]["role"] == expected[i]["role"]
-        ), f"Role mismatch at index {i}"
-        assert (
-            chat_messages[i]["content"] == expected[i]["content"]
-        ), f"Content mismatch at index {i}"
+    assert expected == chat_messages
