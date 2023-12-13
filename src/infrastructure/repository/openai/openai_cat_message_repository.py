@@ -1,6 +1,7 @@
 import os
-from typing import AsyncGenerator
+from typing import AsyncGenerator, cast, List
 from openai import AsyncOpenAI
+from openai.types.chat import ChatCompletionMessageParam
 from domain.repository.cat_message_repository_interface import (
     CatMessageRepositoryInterface,
     GenerateMessageForGuestUserDto,
@@ -18,17 +19,24 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
     async def generate_message_for_guest_user(  # type: ignore
         self, dto: GenerateMessageForGuestUserDto
     ) -> AsyncGenerator[GenerateMessageForGuestUserResult, None]:
+        messages = cast(List[ChatCompletionMessageParam], dto.get("chat_messages"))
+        user = str(dto.get("user_id"))
+
         response = await self.client.chat.completions.create(
             model="gpt-3.5-turbo-1106",
-            messages=dto.get("chat_messages"),
+            messages=messages,
             stream=True,
             temperature=0.7,
-            user=dto.get("user_id"),
-        )  # type: ignore
+            user=user,
+        )
 
         ai_response_id = ""
         async for chunk in response:
-            chunk_message: str = chunk.choices[0].delta.content if chunk.choices[0].delta.content is not None else ""
+            chunk_message: str = (
+                chunk.choices[0].delta.content
+                if chunk.choices[0].delta.content is not None
+                else ""
+            )
 
             if ai_response_id == "":
                 ai_response_id = chunk.id
