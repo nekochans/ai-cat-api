@@ -1,6 +1,7 @@
 import os
 import math
 import httpx
+import json
 from typing import AsyncGenerator, cast, List, TypedDict
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
@@ -31,16 +32,93 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
         messages = cast(List[ChatCompletionMessageParam], dto.get("chat_messages"))
         user = str(dto.get("user_id"))
 
+        functions = [
+            {
+                "name": "fetch_current_weather",
+                "description": "指定された都市の現在の天気を取得する。（日本の都市の天気しか取得出来ない）",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "city_name": {
+                            "type": "string",
+                            "description": "英語表記の日本の都市名",
+                        }
+                    },
+                    "required": ["city_name"],
+                },
+            }
+        ]
+
         response = await self.client.chat.completions.create(
             model="gpt-3.5-turbo-1106",
             messages=messages,
             stream=True,
             temperature=0.7,
             user=user,
+            functions=functions,
+            function_call="auto",
         )
+
+        function_info = {
+            "name": None,
+            "arguments": "",
+        }
 
         ai_response_id = ""
         async for chunk in response:
+            function_call = chunk.choices[0].delta.function_call
+
+            if function_call:
+                if function_call.name is not None and function_call.name != "":
+                    function_info["name"] = function_call.name
+                if (
+                    function_call.arguments is not None
+                    and function_call.arguments != ""
+                ):
+                    function_info["arguments"] += function_call.arguments
+                continue
+
+            if chunk.choices[0].finish_reason == "function_call":
+                if function_info["name"] == "fetch_current_weather":
+                    city_name = json.loads(function_info["arguments"])["city_name"]
+                    function_response = await self._fetch_current_weather(city_name)
+
+                    function_result_message = {
+                        "role": "function",
+                        "name": function_info["name"],
+                        # JSON を文字列に変換したときに日本語が \u6771 のように Unicode になってしまうため、ensure_ascii=False にして回避する
+                        "content": json.dumps(function_response, ensure_ascii=False),
+                    }
+
+                    messages.append(function_result_message)
+                    response = await self.client.chat.completions.create(
+                        model="gpt-3.5-turbo-1106",
+                        messages=messages,
+                        stream=True,
+                        temperature=0.7,
+                        user=user,
+                    )
+
+                    async for chunk in response:
+                        chunk_message: str = (
+                            chunk.choices[0].delta.content
+                            if chunk.choices[0].delta.content is not None
+                            else ""
+                        )
+
+                        if ai_response_id == "":
+                            ai_response_id = chunk.id
+
+                        if chunk_message == "":
+                            continue
+
+                        chunk_body: GenerateMessageForGuestUserResult = {
+                            "ai_response_id": ai_response_id,
+                            "message": chunk_message,
+                        }
+
+                        yield chunk_body
+
             chunk_message: str = (
                 chunk.choices[0].delta.content
                 if chunk.choices[0].delta.content is not None
