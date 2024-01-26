@@ -86,7 +86,6 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
                     function_result_message = {
                         "role": "function",
                         "name": function_info["name"],
-                        # JSON を文字列に変換したときに日本語が \u6771 のように Unicode になってしまうため、ensure_ascii=False にして回避する
                         "content": json.dumps(function_response, ensure_ascii=False),
                     }
 
