@@ -79,7 +79,8 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
 
             if chunk.choices[0].finish_reason == "function_call":
                 if function_info["name"] == "fetch_current_weather":
-                    city_name = json.loads(function_info["arguments"])["city_name"]
+                    arguments = function_info["arguments"] if function_info["arguments"] is not None else ""
+                    city_name = json.loads(arguments)["city_name"]
                     function_response = await self._fetch_current_weather(city_name)
 
                     function_result_message = {
