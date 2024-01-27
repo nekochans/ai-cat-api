@@ -4,7 +4,11 @@ import httpx
 import json
 from typing import AsyncGenerator, cast, List, TypedDict
 from openai import AsyncOpenAI, AsyncStream
-from openai.types.chat import ChatCompletionMessageParam, ChatCompletionChunk, ChatCompletionFunctionMessageParam
+from openai.types.chat import (
+    ChatCompletionMessageParam,
+    ChatCompletionChunk,
+    ChatCompletionFunctionMessageParam,
+)
 from domain.repository.cat_message_repository_interface import (
     CatMessageRepositoryInterface,
     GenerateMessageForGuestUserDto,
@@ -79,7 +83,11 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
 
             if chunk.choices[0].finish_reason == "function_call":
                 if function_info["name"] == "fetch_current_weather":
-                    arguments = function_info["arguments"] if function_info["arguments"] is not None else ""
+                    arguments = (
+                        function_info["arguments"]
+                        if function_info["arguments"] is not None
+                        else ""
+                    )
                     city_name = json.loads(arguments)["city_name"]
                     function_response = await self._fetch_current_weather(city_name)
 
@@ -140,7 +148,9 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
             }
 
     @staticmethod
-    async def _extract_chat_chunks(async_stream: AsyncStream[ChatCompletionChunk]):
+    async def _extract_chat_chunks(
+        async_stream: AsyncStream[ChatCompletionChunk],
+    ) -> AsyncGenerator[GenerateMessageForGuestUserResult, None]:
         ai_response_id = ""
         async for chunk in async_stream:
             chunk_message: str = (
