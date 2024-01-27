@@ -4,7 +4,7 @@ import httpx
 import json
 from typing import AsyncGenerator, cast, List, TypedDict
 from openai import AsyncOpenAI, AsyncStream
-from openai.types.chat import ChatCompletionMessageParam, ChatCompletionChunk
+from openai.types.chat import ChatCompletionMessageParam, ChatCompletionChunk, ChatCompletionFunctionMessageParam
 from domain.repository.cat_message_repository_interface import (
     CatMessageRepositoryInterface,
     GenerateMessageForGuestUserDto,
@@ -83,9 +83,9 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
                     city_name = json.loads(arguments)["city_name"]
                     function_response = await self._fetch_current_weather(city_name)
 
-                    function_result_message = {
+                    function_result_message: ChatCompletionFunctionMessageParam = {
                         "role": "function",
-                        "name": function_info["name"],
+                        "name": "fetch_current_weather",
                         "content": json.dumps(function_response, ensure_ascii=False),
                     }
 
