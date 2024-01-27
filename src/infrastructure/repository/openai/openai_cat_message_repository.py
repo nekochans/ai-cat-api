@@ -3,8 +3,8 @@ import math
 import httpx
 import json
 from typing import AsyncGenerator, cast, List, TypedDict
-from openai import AsyncOpenAI
-from openai.types.chat import ChatCompletionMessageParam
+from openai import AsyncOpenAI, AsyncStream
+from openai.types.chat import ChatCompletionMessageParam, ChatCompletionChunk
 from domain.repository.cat_message_repository_interface import (
     CatMessageRepositoryInterface,
     GenerateMessageForGuestUserDto,
@@ -64,7 +64,6 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
             "arguments": "",
         }
 
-        ai_response_id = ""
         async for chunk in response:
             function_call = chunk.choices[0].delta.function_call
 
@@ -98,44 +97,12 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
                         user=user,
                     )
 
-                    async for chunk in response:
-                        chunk_message: str = (
-                            chunk.choices[0].delta.content
-                            if chunk.choices[0].delta.content is not None
-                            else ""
-                        )
+                    async for generated_response in self._extract_chat_chunks(response):
+                        yield generated_response
+                    continue
 
-                        if ai_response_id == "":
-                            ai_response_id = chunk.id
-
-                        if chunk_message == "":
-                            continue
-
-                        chunk_body: GenerateMessageForGuestUserResult = {
-                            "ai_response_id": ai_response_id,
-                            "message": chunk_message,
-                        }
-
-                        yield chunk_body
-
-            chunk_message: str = (
-                chunk.choices[0].delta.content
-                if chunk.choices[0].delta.content is not None
-                else ""
-            )
-
-            if ai_response_id == "":
-                ai_response_id = chunk.id
-
-            if chunk_message == "":
-                continue
-
-            chunk_body: GenerateMessageForGuestUserResult = {
-                "ai_response_id": ai_response_id,
-                "message": chunk_message,
-            }
-
-            yield chunk_body
+            async for generated_response in self._extract_chat_chunks(response):
+                yield generated_response
 
     async def _fetch_current_weather(
         self, city_name: str = "Tokyo"
@@ -170,3 +137,26 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
                 "description": current_weather["weather"][0]["description"],
                 "temperature": math.floor(current_weather["main"]["temp"]),
             }
+
+    @staticmethod
+    async def _extract_chat_chunks(async_stream: AsyncStream[ChatCompletionChunk]):
+        ai_response_id = ""
+        async for chunk in async_stream:
+            chunk_message: str = (
+                chunk.choices[0].delta.content
+                if chunk.choices[0].delta.content is not None
+                else ""
+            )
+
+            if ai_response_id == "":
+                ai_response_id = chunk.id
+
+            if chunk_message == "":
+                continue
+
+            chunk_body: GenerateMessageForGuestUserResult = {
+                "ai_response_id": ai_response_id,
+                "message": chunk_message,
+            }
+
+            yield chunk_body
