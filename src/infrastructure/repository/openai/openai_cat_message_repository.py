@@ -8,6 +8,7 @@ from openai.types.chat import (
     ChatCompletionMessageParam,
     ChatCompletionChunk,
     ChatCompletionFunctionMessageParam,
+    completion_create_params,
 )
 from domain.repository.cat_message_repository_interface import (
     CatMessageRepositoryInterface,
@@ -52,6 +53,9 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
                 },
             }
         ]
+        function_calling_params = cast(
+            List[completion_create_params.Function], functions
+        )
 
         response = await self.client.chat.completions.create(
             model="gpt-3.5-turbo-1106",
@@ -59,7 +63,7 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
             stream=True,
             temperature=0.7,
             user=user,
-            functions=functions,
+            functions=function_calling_params,
             function_call="auto",
         )
 
