@@ -67,7 +67,7 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
             function_call="auto",
         )
 
-        function_info = {
+        function_calling_arguments = {
             "name": None,
             "arguments": "",
         }
@@ -77,19 +77,19 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
 
             if function_call:
                 if function_call.name is not None and function_call.name != "":
-                    function_info["name"] = function_call.name
+                    function_calling_arguments["name"] = function_call.name
                 if (
                     function_call.arguments is not None
                     and function_call.arguments != ""
                 ):
-                    function_info["arguments"] += function_call.arguments
+                    function_calling_arguments["arguments"] += function_call.arguments
                 continue
 
             if chunk.choices[0].finish_reason == "function_call":
-                if function_info["name"] == "fetch_current_weather":
+                if function_calling_arguments["name"] == "fetch_current_weather":
                     arguments = (
-                        function_info["arguments"]
-                        if function_info["arguments"] is not None
+                        function_calling_arguments["arguments"]
+                        if function_calling_arguments["arguments"] is not None
                         else ""
                     )
                     city_name = json.loads(arguments)["city_name"]
