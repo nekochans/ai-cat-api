@@ -67,8 +67,8 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
             function_call="auto",
         )
 
-        function_calling_arguments = {
-            "name": None,
+        function_calling_arguments: dict[str, str] = {
+            "name": "",
             "arguments": "",
         }
 
