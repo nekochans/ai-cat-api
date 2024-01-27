@@ -25,6 +25,7 @@ mypy = "^1.5.1"
 asyncstdlib = "^3.10.9"
 pytest-env = "^1.1.1"
 pytest-xdist = "^3.5.0"
+httpx = "^0.26.0"
 
 [build-system]
 requires = ["poetry-core"]
