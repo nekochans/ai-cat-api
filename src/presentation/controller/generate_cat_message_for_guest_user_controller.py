@@ -128,9 +128,9 @@ class GenerateCatMessageForGuestUserController:
 
         use_case = GenerateCatMessageForGuestUserUseCase(use_case_dto)
 
-        async def generate_cat_message_for_guest_user_stream() -> AsyncGenerator[
-            str, None
-        ]:
+        async def generate_cat_message_for_guest_user_stream() -> (
+            AsyncGenerator[str, None]
+        ):
             async for chunk in use_case.execute():
                 use_case_result: GenerateCatMessageForGuestUserUseCaseResult = chunk
 

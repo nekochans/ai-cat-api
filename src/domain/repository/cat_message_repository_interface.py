@@ -15,5 +15,4 @@ class GenerateMessageForGuestUserResult(TypedDict):
 class CatMessageRepositoryInterface(Protocol):
     async def generate_message_for_guest_user(
         self, dto: GenerateMessageForGuestUserDto
-    ) -> AsyncGenerator[GenerateMessageForGuestUserResult, None]:
-        ...
+    ) -> AsyncGenerator[GenerateMessageForGuestUserResult, None]: ...

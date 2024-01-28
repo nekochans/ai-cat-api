@@ -27,7 +27,11 @@ async def test_execute_success_with_only_required_params():
 
     use_case = GenerateCatMessageForGuestUserUseCase(dto)
 
-    expectedMessages = ["はじめましてだにゃん", "🐱", "何かお手伝いできる事はないにゃんか？"]
+    expectedMessages = [
+        "はじめましてだにゃん",
+        "🐱",
+        "何かお手伝いできる事はないにゃんか？",
+    ]
 
     async for i, result in asyncstdlib.enumerate(use_case.execute()):
         assert "conversation_id" in result
@@ -51,7 +55,11 @@ async def test_execute_success_with_all_params():
 
     use_case = GenerateCatMessageForGuestUserUseCase(dto)
 
-    expectedMessages = ["はじめましてだにゃん", "🐱", "何かお手伝いできる事はないにゃんか？"]
+    expectedMessages = [
+        "はじめましてだにゃん",
+        "🐱",
+        "何かお手伝いできる事はないにゃんか？",
+    ]
 
     async for i, result in asyncstdlib.enumerate(use_case.execute()):
         assert "conversation_id" in result
@@ -97,7 +105,11 @@ async def test_execute_error_failed_to_save_conversation_history():
 
     use_case = GenerateCatMessageForGuestUserUseCase(dto)
 
-    expectedMessages = ["はじめましてだにゃん", "🐱", "何かお手伝いできる事はないにゃんか？"]
+    expectedMessages = [
+        "はじめましてだにゃん",
+        "🐱",
+        "何かお手伝いできる事はないにゃんか？",
+    ]
 
     async for i, result in asyncstdlib.enumerate(use_case.execute()):
         if i == 3:

@@ -17,7 +17,9 @@ class GenerateCatMessageForGuestUserUseCaseDtoRequiredType(TypedDict):
     cat_id: CatId
     message: str
     db_handler: DbHandlerInterface
-    guest_users_conversation_history_repository: GuestUsersConversationHistoryRepositoryInterface
+    guest_users_conversation_history_repository: (
+        GuestUsersConversationHistoryRepositoryInterface
+    )
     cat_message_repository: CatMessageRepositoryInterface
 
 
