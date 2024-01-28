@@ -7,8 +7,8 @@ from openai import AsyncOpenAI, AsyncStream
 from openai.types.chat import (
     ChatCompletionMessageParam,
     ChatCompletionChunk,
-    ChatCompletionFunctionMessageParam,
     completion_create_params,
+    ChatCompletionToolParam,
 )
 from domain.repository.cat_message_repository_interface import (
     CatMessageRepositoryInterface,
@@ -57,65 +57,77 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
             List[completion_create_params.Function], functions
         )
 
+        tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "fetch_current_weather",
+                    "description": "指定された都市の現在の天気を取得する。（日本の都市の天気しか取得出来ない）",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "city_name": {
+                                "type": "string",
+                                "description": "英語表記の日本の都市名",
+                            }
+                        },
+                        "required": ["city_name"],
+                    },
+                },
+            }
+        ]
+        tools_params = cast(List[ChatCompletionToolParam], tools)
+
+        pre_messages = messages.copy()
+        pre_messages[0] = {
+            "role": "system",
+            # TODO もう少しマシなプロンプトに変える
+            "content": "今までの会話履歴から関数呼び出しが必要かどうかだけを判断します。関数呼び出しが必要なない場合は空の応答を返します。",
+        }
+        pre_response = await self.client.chat.completions.create(
+            model="gpt-3.5-turbo-1106",
+            messages=messages,
+            temperature=0.7,
+            user=user,
+            tools=tools_params,
+            tool_choice="auto",
+        )
+
+        tool_response_messages = []
+        if pre_response.choices[0].finish_reason == "tool_calls":
+            tool_calls = pre_response.choices[0].message.tool_calls
+            for tool_call in tool_calls:
+                # TODO: 今のところ function しか対応していないが、将来的には別の何かが増える可能性があるので変更しやすい構造にしておく
+                if tool_call.type == "function":
+                    # TODO 関数呼び出しがハードコードされているので、呼び出し箇所を動的に変更できるようにする
+                    city_name = json.loads(tool_call.function.arguments)["city_name"]
+                    function_response = await self._fetch_current_weather(city_name)
+                    tool_response_messages.append(
+                        {
+                            "tool_call_id": tool_call.id,
+                            "role": "tool",
+                            "content": json.dumps(
+                                function_response, ensure_ascii=False
+                            ),
+                        }
+                    )
+
+            messages = [
+                *messages,
+                pre_response.choices[0].message,
+                *tool_response_messages,
+            ]
+
         response = await self.client.chat.completions.create(
             model="gpt-3.5-turbo-1106",
             messages=messages,
             stream=True,
             temperature=0.7,
             user=user,
-            functions=function_calling_params,
-            function_call="auto",
         )
 
-        function_calling_arguments: dict[str, str] = {
-            "name": "",
-            "arguments": "",
-        }
-
-        async for chunk in response:
-            function_call = chunk.choices[0].delta.function_call
-
-            if function_call:
-                if function_call.name is not None and function_call.name != "":
-                    function_calling_arguments["name"] = function_call.name
-                if (
-                    function_call.arguments is not None
-                    and function_call.arguments != ""
-                ):
-                    function_calling_arguments["arguments"] += function_call.arguments
-                continue
-
-            if chunk.choices[0].finish_reason == "function_call":
-                if function_calling_arguments["name"] == "fetch_current_weather":
-                    arguments = (
-                        function_calling_arguments["arguments"]
-                        if function_calling_arguments["arguments"] is not None
-                        else ""
-                    )
-                    city_name = json.loads(arguments)["city_name"]
-                    function_response = await self._fetch_current_weather(city_name)
-
-                    function_result_message: ChatCompletionFunctionMessageParam = {
-                        "role": "function",
-                        "name": "fetch_current_weather",
-                        "content": json.dumps(function_response, ensure_ascii=False),
-                    }
-
-                    messages.append(function_result_message)
-                    response = await self.client.chat.completions.create(
-                        model="gpt-3.5-turbo-1106",
-                        messages=messages,
-                        stream=True,
-                        temperature=0.7,
-                        user=user,
-                    )
-
-                    async for generated_response in self._extract_chat_chunks(response):
-                        yield generated_response
-                    continue
-
-            async for generated_response in self._extract_chat_chunks(response):
-                yield generated_response
+        async for generated_response in self._extract_chat_chunks(response):
+            yield generated_response
 
     async def _fetch_current_weather(
         self, city_name: str = "Tokyo"
