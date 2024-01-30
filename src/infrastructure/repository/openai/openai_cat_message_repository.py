@@ -7,7 +7,6 @@ from openai import AsyncOpenAI, AsyncStream
 from openai.types.chat import (
     ChatCompletionMessageParam,
     ChatCompletionChunk,
-    completion_create_params,
     ChatCompletionToolParam,
 )
 from domain.repository.cat_message_repository_interface import (
@@ -37,26 +36,30 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
         messages = cast(List[ChatCompletionMessageParam], dto.get("chat_messages"))
         user = str(dto.get("user_id"))
 
-        functions = [
-            {
-                "name": "fetch_current_weather",
-                "description": "指定された都市の現在の天気を取得する。（日本の都市の天気しか取得出来ない）",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "city_name": {
-                            "type": "string",
-                            "description": "英語表記の日本の都市名",
-                        }
-                    },
-                    "required": ["city_name"],
-                },
-            }
-        ]
-        function_calling_params = cast(
-            List[completion_create_params.Function], functions
+        regenerated_messages = (
+            await self._might_regenerate_messages_contain_tools_results_exec(
+                dto,
+                messages,
+            )
         )
 
+        response = await self.client.chat.completions.create(
+            model="gpt-3.5-turbo-1106",
+            messages=regenerated_messages,
+            stream=True,
+            temperature=0.7,
+            user=user,
+        )
+
+        async for generated_response in self._extract_chat_chunks(response):
+            yield generated_response
+
+    # 必要に応じてtoolsを実行してメッセージのリストにtoolsの実行結果を含めて再生成する
+    async def _might_regenerate_messages_contain_tools_results_exec(
+        self,
+        dto: GenerateMessageForGuestUserDto,
+        messages: List[ChatCompletionMessageParam],
+    ) -> List[ChatCompletionMessageParam]:
         tools = [
             {
                 "type": "function",
@@ -78,24 +81,25 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
         ]
         tools_params = cast(List[ChatCompletionToolParam], tools)
 
-        pre_messages = messages.copy()
-        pre_messages[0] = {
+        copied_messages = messages.copy()
+        copied_messages[0] = {
             "role": "system",
             # TODO もう少しマシなプロンプトに変える
             "content": "今までの会話履歴から関数呼び出しが必要かどうかだけを判断します。関数呼び出しが必要なない場合は空の応答を返します。",
         }
-        pre_response = await self.client.chat.completions.create(
+
+        response = await self.client.chat.completions.create(
             model="gpt-3.5-turbo-1106",
-            messages=messages,
+            messages=copied_messages,
             temperature=0.7,
-            user=user,
+            user=str(dto.get("user_id")),
             tools=tools_params,
             tool_choice="auto",
         )
 
         tool_response_messages = []
-        if pre_response.choices[0].finish_reason == "tool_calls":
-            tool_calls = pre_response.choices[0].message.tool_calls
+        if response.choices[0].finish_reason == "tool_calls":
+            tool_calls = response.choices[0].message.tool_calls
             for tool_call in tool_calls:
                 # TODO: 今のところ function しか対応していないが、将来的には別の何かが増える可能性があるので変更しやすい構造にしておく
                 if tool_call.type == "function":
@@ -112,22 +116,17 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
                         }
                     )
 
-            messages = [
+            # tools（Function calling等）の実行結果を含めて再生成したメッセージのリストを返す
+            regenerated_messages = [
                 *messages,
-                pre_response.choices[0].message,
+                response.choices[0].message,
                 *tool_response_messages,
             ]
 
-        response = await self.client.chat.completions.create(
-            model="gpt-3.5-turbo-1106",
-            messages=messages,
-            stream=True,
-            temperature=0.7,
-            user=user,
-        )
+            return regenerated_messages
 
-        async for generated_response in self._extract_chat_chunks(response):
-            yield generated_response
+        # ここに来たという事はtoolsの実行が必要ないという事なので、引数で渡されたmessagesをそのまま返す
+        return messages
 
     async def _fetch_current_weather(
         self, city_name: str = "Tokyo"
