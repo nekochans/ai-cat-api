@@ -2,12 +2,13 @@ import os
 import math
 import httpx
 import json
-from typing import AsyncGenerator, cast, List, TypedDict
+from typing import AsyncGenerator, cast, List, TypedDict, Union
 from openai import AsyncOpenAI, AsyncStream
 from openai.types.chat import (
     ChatCompletionMessageParam,
     ChatCompletionChunk,
     ChatCompletionToolParam,
+    ChatCompletionMessageToolCall,
 )
 from domain.repository.cat_message_repository_interface import (
     CatMessageRepositoryInterface,
@@ -101,21 +102,17 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
         if response.choices[0].finish_reason == "tool_calls":
             tool_calls = response.choices[0].message.tool_calls
             for tool_call in tool_calls:
-                # TODO: 今のところ function しか対応していないが、将来的には別の何かが増える可能性があるので変更しやすい構造にしておく
-                if tool_call.type == "function":
-                    # TODO 関数呼び出しがハードコードされているので、呼び出し箇所を動的に変更できるようにする
-                    city_name = json.loads(tool_call.function.arguments)["city_name"]
-                    function_response = await self._fetch_current_weather(city_name)
+                tool_call_response = await self._might_call_tool(tool_call)
+                if tool_call_response is not None:
                     tool_response_messages.append(
                         {
                             "tool_call_id": tool_call.id,
                             "role": "tool",
                             "content": json.dumps(
-                                function_response, ensure_ascii=False
+                                tool_call_response, ensure_ascii=False
                             ),
                         }
                     )
-
             # tools（Function calling等）の実行結果を含めて再生成したメッセージのリストを返す
             regenerated_messages = [
                 *messages,
@@ -127,6 +124,21 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
 
         # ここに来たという事はtoolsの実行が必要ないという事なので、引数で渡されたmessagesをそのまま返す
         return messages
+
+    async def _might_call_tool(self, tool_call: ChatCompletionMessageToolCall):
+        if tool_call.type == "function":
+            return await self._might_call_function(tool_call)
+
+    async def _might_call_function(
+        self,
+        tool_call: ChatCompletionMessageToolCall,
+    ) -> Union[None, FetchCurrentWeatherResponse]:
+        if tool_call.function.name == "fetch_current_weather":
+            function_arguments = json.loads(tool_call.function.arguments)
+            city_name = function_arguments["city_name"]
+            return await self._fetch_current_weather(city_name)
+
+        return None
 
     async def _fetch_current_weather(
         self, city_name: str = "Tokyo"
