@@ -2,6 +2,8 @@ import os
 import math
 import httpx
 import json
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from typing import AsyncGenerator, cast, List, TypedDict, Union
 from openai import AsyncOpenAI, AsyncStream
 from openai.types.chat import (
@@ -21,6 +23,10 @@ class FetchCurrentWeatherResponse(TypedDict):
     city_name: str
     description: str
     temperature: int
+
+
+class GetCurrentDatetimeResponse(TypedDict):
+    current_datetime: str
 
 
 class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
@@ -78,7 +84,24 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
                         "required": ["city_name"],
                     },
                 },
-            }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_current_datetime_in_iso_format",
+                    "description": "指定されたタイムゾーンの現在日時をISO 8601形式で返す。",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "timezone": {
+                                "type": "string",
+                                "description": "タイムゾーン名: 例: Asia/Tokyo, UTC, America/New_York",
+                            }
+                        },
+                        "required": ["timezone"],
+                    },
+                },
+            },
         ]
         tools_params = cast(List[ChatCompletionToolParam], tools)
 
@@ -104,6 +127,8 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
             tool_choice="auto",
             response_format={"type": "json_object"},
         )
+
+        print(response)
 
         tool_response_messages = []
         if response.choices[0].finish_reason == "tool_calls":
@@ -138,18 +163,23 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
 
     async def _might_call_tool(
         self, tool_call: ChatCompletionMessageToolCall
-    ) -> Union[None, FetchCurrentWeatherResponse]:
+    ) -> Union[None, FetchCurrentWeatherResponse, GetCurrentDatetimeResponse]:
         if tool_call.type == "function":
             return await self._might_call_function(tool_call)
 
     async def _might_call_function(
         self,
         tool_call: ChatCompletionMessageToolCall,
-    ) -> Union[None, FetchCurrentWeatherResponse]:
+    ) -> Union[None, FetchCurrentWeatherResponse, GetCurrentDatetimeResponse]:
         if tool_call.function.name == "fetch_current_weather":
             function_arguments = json.loads(tool_call.function.arguments)
             city_name = function_arguments["city_name"]
             return await self._fetch_current_weather(city_name)
+
+        if tool_call.function.name == "get_current_datetime_in_iso_format":
+            function_arguments = json.loads(tool_call.function.arguments)
+            timezone = function_arguments["timezone"]
+            return await self._get_current_datetime_in_iso_format(timezone)
 
         return None
 
@@ -186,6 +216,16 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
                 "description": current_weather["weather"][0]["description"],
                 "temperature": math.floor(current_weather["main"]["temp"]),
             }
+
+    @staticmethod
+    async def _get_current_datetime_in_iso_format(
+        timezone: str,
+    ) -> GetCurrentDatetimeResponse:
+        current_datetime = datetime.now(ZoneInfo(timezone))
+
+        return {
+            "current_datetime": current_datetime.isoformat(),
+        }
 
     @staticmethod
     async def _extract_chat_chunks(
