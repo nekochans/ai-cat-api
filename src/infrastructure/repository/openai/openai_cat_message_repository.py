@@ -83,10 +83,16 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
         tools_params = cast(List[ChatCompletionToolParam], tools)
 
         copied_messages = messages.copy()
+
+        system_prompt = """
+        あなたの役割は与えられた会話履歴からtoolsの利用が必要かどうか判断する事です。
+        JSONのキーはuse_toolsとしてください。
+        toolsの利用が必要な場合はtrue,不要な場合はfalseを返します。
+        """
+
         copied_messages[0] = {
             "role": "system",
-            # TODO もう少しマシなプロンプトに変える
-            "content": "今までの会話履歴から関数呼び出しが必要かどうかだけを判断します。関数呼び出しが必要なない場合は空の応答を返します。",
+            "content": system_prompt,
         }
 
         response = await self.client.chat.completions.create(
@@ -96,6 +102,7 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
             user=str(dto.get("user_id")),
             tools=tools_params,
             tool_choice="auto",
+            response_format={"type": "json_object"},
         )
 
         tool_response_messages = []
