@@ -101,6 +101,10 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
         tool_response_messages = []
         if response.choices[0].finish_reason == "tool_calls":
             tool_calls = response.choices[0].message.tool_calls
+
+            if tool_calls is None:
+                return messages
+
             for tool_call in tool_calls:
                 tool_call_response = await self._might_call_tool(tool_call)
                 if tool_call_response is not None:
@@ -120,12 +124,14 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
                 *tool_response_messages,
             ]
 
-            return regenerated_messages
+            return cast(List[ChatCompletionMessageParam], regenerated_messages)
 
         # ここに来たという事はtoolsの実行が必要ないという事なので、引数で渡されたmessagesをそのまま返す
         return messages
 
-    async def _might_call_tool(self, tool_call: ChatCompletionMessageToolCall):
+    async def _might_call_tool(
+        self, tool_call: ChatCompletionMessageToolCall
+    ) -> Union[None, FetchCurrentWeatherResponse]:
         if tool_call.type == "function":
             return await self._might_call_function(tool_call)
 
