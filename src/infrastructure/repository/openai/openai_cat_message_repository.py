@@ -128,8 +128,6 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
             response_format={"type": "json_object"},
         )
 
-        print(response)
-
         tool_response_messages = []
         if response.choices[0].finish_reason == "tool_calls":
             tool_calls = response.choices[0].message.tool_calls
