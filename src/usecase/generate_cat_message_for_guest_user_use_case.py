@@ -132,7 +132,7 @@ class GenerateCatMessageForGuestUserUseCase:
 
             ai_response_id = ""
 
-            async for chunk in self.dto["cat_message_repository"].generate_message_for_guest_user(  # type: ignore
+            async for chunk in self.dto["cat_message_repository"].generate_message_for_guest_user(
                 create_message_for_guest_user_dto
             ):
                 # AIの応答を更新
