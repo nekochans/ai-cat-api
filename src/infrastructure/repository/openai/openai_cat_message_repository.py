@@ -4,7 +4,8 @@ import httpx
 import json
 from datetime import datetime
 from zoneinfo import ZoneInfo
-from typing import AsyncGenerator, cast, List, TypedDict, Union
+from typing import cast, List, TypedDict, Union
+from collections.abc import AsyncIterator
 from openai import AsyncOpenAI, AsyncStream
 from openai.types.chat import (
     ChatCompletionMessageParam,
@@ -35,11 +36,9 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
         self.OPEN_WEATHER_API_KEY = os.environ["OPEN_WEATHER_API_KEY"]
         self.client = AsyncOpenAI(api_key=self.OPENAI_API_KEY)
 
-    # TODO: 型は合っているのに型チェックエラーが出る mypy が AsyncGenerator に対応していない可能性がある
-    # TODO: https://github.com/nekochans/ai-cat-api/issues/68 で別の型チェックツールを試してみる
-    async def generate_message_for_guest_user(  # type: ignore
+    async def generate_message_for_guest_user(
         self, dto: GenerateMessageForGuestUserDto
-    ) -> AsyncGenerator[GenerateMessageForGuestUserResult, None]:
+    ) -> AsyncIterator[GenerateMessageForGuestUserResult]:
         messages = cast(List[ChatCompletionMessageParam], dto.get("chat_messages"))
         user = str(dto.get("user_id"))
 
@@ -228,7 +227,7 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
     @staticmethod
     async def _extract_chat_chunks(
         async_stream: AsyncStream[ChatCompletionChunk],
-    ) -> AsyncGenerator[GenerateMessageForGuestUserResult, None]:
+    ) -> AsyncIterator[GenerateMessageForGuestUserResult]:
         ai_response_id = ""
         async for chunk in async_stream:
             chunk_message: str = (

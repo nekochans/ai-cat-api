@@ -1,5 +1,5 @@
 import asyncio
-from typing import AsyncGenerator
+from collections.abc import AsyncIterator
 from domain.repository.cat_message_repository_interface import (
     CatMessageRepositoryInterface,
     GenerateMessageForGuestUserDto,
@@ -8,9 +8,9 @@ from domain.repository.cat_message_repository_interface import (
 
 
 class MockCatMessageRepository(CatMessageRepositoryInterface):
-    async def generate_message_for_guest_user(  # type: ignore
+    async def generate_message_for_guest_user(
         self, dto: GenerateMessageForGuestUserDto
-    ) -> AsyncGenerator[GenerateMessageForGuestUserResult, None]:
+    ) -> AsyncIterator[GenerateMessageForGuestUserResult]:
         messages = [
             "はじめましてだにゃん",
             "🐱",

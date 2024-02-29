@@ -1,4 +1,5 @@
-from typing import Protocol, List, TypedDict, AsyncGenerator
+from typing import Protocol, List, TypedDict
+from collections.abc import AsyncIterator
 from domain.message import ChatMessage
 
 
@@ -13,6 +14,6 @@ class GenerateMessageForGuestUserResult(TypedDict):
 
 
 class CatMessageRepositoryInterface(Protocol):
-    async def generate_message_for_guest_user(
+    def generate_message_for_guest_user(
         self, dto: GenerateMessageForGuestUserDto
-    ) -> AsyncGenerator[GenerateMessageForGuestUserResult, None]: ...
+    ) -> AsyncIterator[GenerateMessageForGuestUserResult]: ...
