@@ -1,4 +1,5 @@
-from typing import Optional, AsyncGenerator, cast
+from typing import Optional, cast
+from collections.abc import AsyncIterator
 from fastapi import status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, field_validator
@@ -128,9 +129,7 @@ class GenerateCatMessageForGuestUserController:
 
         use_case = GenerateCatMessageForGuestUserUseCase(use_case_dto)
 
-        async def generate_cat_message_for_guest_user_stream() -> (
-            AsyncGenerator[str, None]
-        ):
+        async def generate_cat_message_for_guest_user_stream() -> AsyncIterator[str]:
             async for chunk in use_case.execute():
                 use_case_result: GenerateCatMessageForGuestUserUseCaseResult = chunk
 

@@ -1,4 +1,5 @@
-from typing import TypedDict, AsyncGenerator, Union, Dict, Any
+from typing import TypedDict, Union, Dict, Any
+from collections.abc import AsyncIterator
 from usecase.db_handler_interface import DbHandlerInterface
 from domain.repository.guest_users_conversation_history_repository_interface import (
     GuestUsersConversationHistoryRepositoryInterface,
@@ -82,7 +83,7 @@ class GenerateCatMessageForGuestUserUseCase:
 
     async def execute(
         self,
-    ) -> AsyncGenerator[GenerateCatMessageForGuestUserUseCaseResult, None]:
+    ) -> AsyncIterator[GenerateCatMessageForGuestUserUseCaseResult]:
         conversation_id: str = self.dto["request_id"]
         if self.dto.get("conversation_id") is not None:
             conversation_id = self.dto["conversation_id"]
