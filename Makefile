@@ -22,6 +22,7 @@ typecheck-container:
 	docker compose exec ai-cat-api bash -c "cd / && poetry run python -m mypy --strict"
 
 ci: lint-container typecheck-container test-container
+	docker compose exec ai-cat-api bash -c "cd / && black --check src/ tests/"
 
 run:
 	python src/main.py
