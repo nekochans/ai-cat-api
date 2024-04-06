@@ -66,56 +66,12 @@ OPENSSLDIR: "/private/etc/ssl"
 export SSL_CERT_PATH=/private/etc/ssl/cert.pem
 ```
 
-### Pythonのインストール（既にインストールされている場合は省略可）
-
-利用するPythonのバージョンは `Dockerfile` に記載してあります。
-
-標準でインストールされているPythonではなくプロジェクト毎にバージョン管理出来る状態が理想です。
-
-[asdf](https://asdf-vm.com/) を使ってプロジェクト用にPythonをインストール手順を記載します。
-
-1. [asdf](https://asdf-vm.com/) をインストールします
-
-```bash
-brew install asdf
-```
-
-2. [asdf](https://asdf-vm.com/) のPythonPluginを追加します
-
-```bash
-asdf plugin add python
-```
-
-3. `Dockerfile` に記載してあるバージョンのPythonをインストール
-
-```bash
-asdf install python {`Dockerfile` に記載してあるバージョンを指定}
-```
-
-4. プロジェクトルートで利用するPythonのバージョンを指定
-
-```bash
-asdf local python {`Dockerfile` に記載してあるバージョンを指定}
-```
-
-### Poetryのインストール
+### Ryeのインストール
 
 Homebrew でインストールを実施します。
 
 ```bash
-brew install poetry
-```
-
-下記は必須ではありませんが、以下を実行するとプロジェクト配下に仮想環境が作成されるようになるので分かりやすいです。
-
-```bash
-poetry config virtualenvs.in-project true
-```
-
-Poetryの設定に関しては以下で現在値を確認可能です。
-
-```bash
-poetry config --list
+brew install rye
 ```
 
 ### 依存packageのインストール & 仮想環境の作成
@@ -123,77 +79,10 @@ poetry config --list
 以下を実行します。
 
 ```bash
-poetry install
+rye sync
 ```
 
-### 仮想環境のアクティベート
-
-以下を実行します。
-
-```bash
-poetry shell
-```
-
-packageの追加や Makefile 内のタスクを実行する為には仮想環境がアクティベート状態である必要があります。
-
-### アプリケーションサーバーの起動
-
-仮想環境がアクティベートされた状態で以下を実行します。
-
-```bash
-make run
-```
-
-以下で動作確認が可能です。
-
-```bash
-API_CREDENTIAL=`echo -n "$BASIC_AUTH_USERNAME:$BASIC_AUTH_PASSWORD" | base64`
-curl -v -N \
--X POST \
--H "Content-Type: application/json" \
--H "Authorization: Basic $API_CREDENTIAL" \
--H "Accept: text/event-stream" \
--d '
-{
-  "userId": "6a17f37c-996e-7782-fefd-d71eb7eaaa37",
-  "message": "こんにちはもこちゃん🐱"
-}' \
-http://0.0.0.0:8000/cats/moko/messages-for-guest-users
-```
-
-## 各コマンドの説明
-
-`poetry shell` で仮想環境をアクティベートした状態で利用出来る様々なコマンドを解説します。
-
-### Linterを実行
-
-```bash
-make lint
-```
-
-### Formatterを実行
-
-```bash
-make format
-```
-
-### テストコードの実行
-
-テストコードの実行はDockerコンテナを立ち上げる必要があります。
-
-このREADME内の「Dockerによる環境構築」を参考にコンテナを起動してから下記を実行します。
-
-```bash
-make test-container
-```
-
-### typecheckの実行
-
-```bash
-make typecheck
-```
-
-## Dockerによる環境構築
+### Dockerによる環境構築
 
 [Docker Desktop](https://www.docker.com/products/docker-desktop/) もしくは [OrbStack](https://orbstack.dev/) がインストールされている場合はDockerによる環境構築も可能です。
 
@@ -281,6 +170,73 @@ docker compose down
 
 ```bash
 docker compose down --rmi all --volumes --remove-orphans
+```
+
+## 各コマンドの説明
+
+`Makefile` に定義されているコマンドについて説明します。
+
+`make` が利用出来ない場合は以下のコマンドでインストールします。
+
+```bash
+brew install make
+```
+
+### Linterを実行
+
+```bash
+make lint
+```
+
+### Formatterを実行
+
+```bash
+make format
+```
+
+### テストコードの実行
+
+テストコードの実行はDockerコンテナを立ち上げる必要があります。
+
+このREADME内の「Dockerによる環境構築」を参考にコンテナを起動してから下記を実行します。
+
+```bash
+make test-container
+```
+
+### typecheckの実行
+
+```bash
+make typecheck
+```
+
+## Ryeでアプリケーションサーバーを起動する
+
+以下を実行するとアプリケーションサーバーが起動します。
+
+ただしMySQLのコンテナが立ち上がっている必要があるので結局はDockerを利用する事になります。
+
+ただしデバッガーでブレイクポイント等を利用する場合はこちらのほうがやりやすいと思います。
+
+```bash
+make run
+```
+
+以下で動作確認が可能です。
+
+```bash
+API_CREDENTIAL=`echo -n "$BASIC_AUTH_USERNAME:$BASIC_AUTH_PASSWORD" | base64`
+curl -v -N \
+-X POST \
+-H "Content-Type: application/json" \
+-H "Authorization: Basic $API_CREDENTIAL" \
+-H "Accept: text/event-stream" \
+-d '
+{
+  "userId": "6a17f37c-996e-7782-fefd-d71eb7eaaa37",
+  "message": "こんにちはもこちゃん🐱"
+}' \
+http://0.0.0.0:8000/cats/moko/messages-for-guest-users
 ```
 
 ## テストコードの作成について
