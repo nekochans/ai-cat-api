@@ -24,7 +24,8 @@ services:
       - ./.flake8:/.flake8
       - ./Makefile:/Makefile
       - ./pyproject.toml:/pyproject.toml
-      - ./poetry.lock:/poetry.lock
+      - ./requirements.lock:/requirements.lock
+      - ./requirements-dev.lock:/requirements-dev.lock
       - ./src:/src
       - ./tests:/tests
     command: uvicorn main:app --reload --host 0.0.0.0 --port 5000
