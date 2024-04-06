@@ -1,18 +1,18 @@
-FROM python:3.11.3-slim AS build
+FROM python:3.12.2-slim AS build
 
 RUN apt-get update && apt-get install -y ca-certificates
 
-FROM python:3.11.3-slim
+FROM python:3.12.2-slim
 
 WORKDIR /src
 
-COPY pyproject.toml poetry.lock ./
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends build-essential
 
-RUN pip install --no-cache-dir --upgrade pip && \
-  pip install --no-cache-dir "poetry==1.5.1"
+COPY requirements.lock requirements-dev.lock ./
 
-RUN poetry config virtualenvs.create false && \
-  poetry install --no-interaction --no-ansi --no-root
+RUN sed '/-e/d' requirements.lock > requirements.txt && \
+  pip install -r requirements.txt
 
 COPY ./src/ .
 
