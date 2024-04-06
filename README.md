@@ -17,7 +17,9 @@ MacOSを利用する前提の手順になります。
 
 ```bash
 export OPENAI_API_KEY=OpenAIのAPIキーを指定
-export API_CREDENTIAL=任意の文字列を指定
+export OPEN_WEATHER_API_KEY=https://openweathermap.org/ のAPIキーを指定
+export BASIC_AUTH_USERNAME="ベーシック認証のユーザー名（任意の値）"
+export BASIC_AUTH_PASSWORD="ベーシック認証のパスワード（任意の値）"
 export DB_HOST=PlanetScaleのデータベースホスト名を指定
 export DB_NAME=PlanetScaleのデータベース名を指定
 export DB_USERNAME=PlanetScaleのデータベースユーザー名を指定
