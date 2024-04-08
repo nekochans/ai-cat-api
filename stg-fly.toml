@@ -1,5 +1,7 @@
-app = "stg-ai-cat-api"
-primary_region = "nrt"
+app = 'stg-ai-cat-api'
+primary_region = 'nrt'
+
+[build]
 
 [http_service]
   internal_port = 5000
@@ -7,3 +9,9 @@ primary_region = "nrt"
   auto_stop_machines = true
   auto_start_machines = true
   min_machines_running = 0
+  processes = ['app']
+
+[[vm]]
+  memory = '512mb'
+  cpu_kind = 'shared'
+  cpus = 1

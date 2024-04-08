@@ -3,11 +3,20 @@
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = "ai-cat-api"
-primary_region = "nrt"
+app = 'ai-cat-api'
+primary_region = 'nrt'
+
+[build]
 
 [http_service]
   internal_port = 5000
   force_https = true
   auto_stop_machines = true
   auto_start_machines = true
+  min_machines_running = 2
+  processes = ['app']
+
+[[vm]]
+  memory = '512mb'
+  cpu_kind = 'shared'
+  cpus = 2
