@@ -1,5 +1,5 @@
 from domain.cat import get_prompt_by_cat_id, CatId
-
+import os
 
 def test_get_prompt_by_cat_id_moko():
     cat_id: CatId = "moko"
