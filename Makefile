@@ -10,7 +10,7 @@ typecheck:
 	rye run mypy --strict
 
 lint-container:
-	docker compose exec ai-cat-api bash -c "cd / && ruff check src/ tests/"
+	docker compose exec ai-cat-api bash -c "cd / && ruff check --output-format=github src/ tests/"
 
 format-container:
 	docker compose exec ai-cat-api bash -c "cd / && ruff format"
