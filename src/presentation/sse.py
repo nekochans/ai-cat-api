@@ -3,7 +3,6 @@ import json
 from typing import Any, Dict, Generator
 
 
-
 def format_sse(response_body: Dict[str, Any]) -> str:
     json_body = json.dumps(response_body, ensure_ascii=False)
     sse_message = f"data: {json_body}\n\n"
