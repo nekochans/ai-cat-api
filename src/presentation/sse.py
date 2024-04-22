@@ -10,6 +10,6 @@ def format_sse(response_body: Dict[str, Any]) -> str:
 
 
 def generate_error_response(
-    response_body: Dict[str, Any]
+    response_body: Dict[str, Any],
 ) -> Generator[str, None, None]:
     yield format_sse(response_body)
