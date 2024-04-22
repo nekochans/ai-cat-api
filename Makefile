@@ -22,7 +22,7 @@ typecheck-container:
 	docker compose exec ai-cat-api bash -c "cd / && mypy --strict"
 
 ci: lint-container typecheck-container test-container
-	docker compose exec ai-cat-api bash -c "cd / && ruff format --check src/ tests/"
+	docker compose exec ai-cat-api bash -c "cd / && ruff format src/ tests/ --check --diff"
 
 run:
 	rye run python src/main.py
