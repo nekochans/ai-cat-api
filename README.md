@@ -272,3 +272,21 @@ docker compose up --build -d
 ロールバックの際は [本番用のデプロイワークフロー](https://github.com/nekochans/ai-cat-api/actions/workflows/deploy-to-production.yml) を手動実行する事になりますが、その際にGitタグがあると前のバージョンに戻しやすいので必ず作成します。
 
 別サービスのドキュメントですが [lgtm-cat-ui 5. リリースページの作成](https://github.com/nekochans/lgtm-cat-ui/blob/main/.github/CONTRIBUTING.md#5-%E3%83%AA%E3%83%AA%E3%83%BC%E3%82%B9%E3%83%9A%E3%83%BC%E3%82%B8%E3%81%AE%E4%BD%9C%E6%88%90) と手順は同じです。
+
+## LLMの精度評価を行う
+
+以下のテストコードを実行するとねこの人格を持ったAIのレスポンス評価をLLMを使って評価します。
+
+```bash
+rye run pytest -vv -s tests/infrastructure/repository/aiomysql/openai/openai_cat_message_repository/test_generate_message_for_guest_user.py
+```
+
+ただし普段はテスト実行時間があまりにも長い事や、APIの利用料金が高くなってしまうのでテストをスキップするようにしています。
+
+実行する際は `tests/infrastructure/repository/aiomysql/openai/openai_cat_message_repository/test_generate_message_for_guest_user.py` の以下の部分をコメントアウトしてください。
+
+```python
+import pytest
+
+@pytest.mark.skip(reason="APIの課金が発生する、実行時間が非常に長いため普段はスキップ")
+```
