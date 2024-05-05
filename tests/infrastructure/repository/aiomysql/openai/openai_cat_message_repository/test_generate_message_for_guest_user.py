@@ -1,5 +1,9 @@
 import pytest
 import sys
+import os
+import json
+from typing import TypedDict
+from openai import AsyncOpenAI
 from src.infrastructure.repository.openai.openai_cat_message_repository import (
     OpenAiCatMessageRepository,
 )
@@ -7,6 +11,58 @@ from domain.repository.cat_message_repository_interface import (
     GenerateMessageForGuestUserDto,
 )
 from domain.cat import get_prompt_by_cat_id
+
+evaluation_prompt_template = """
+## Instruction
+
+あなたはAIの回答を評価するアシスタントです。
+
+以下のContextに設定されている情報を元に、AIの回答が適切かどうかを判断していただきます。
+
+## Context
+
+### 評価対象となるAIに設定するシステムプロンプト
+{system_prompt}
+
+### ユーザーの質問
+{question}
+
+### 模範解答
+{model_answer}
+
+### 実際のLLMの回答
+{answer}
+
+## Output Indicator
+以下のようなJSON形式を返して欲しいです。
+
+### score
+これは0から100の間の値で、AIの回答が模範解答にどれだけ近いかを示して欲しいです。
+
+0が最も点数が低く、100が最も点数が高いです。
+
+### feedback_comment
+
+回答に対するフィードバックを日本語でコメントで記載してください。
+"""
+
+
+class CreateEvaluationPromptDto(TypedDict):
+    system_prompt: str
+    question: str
+    model_answer: str
+    answer: str
+
+
+def create_evaluation_prompt(
+    dto: CreateEvaluationPromptDto,
+) -> str:
+    return evaluation_prompt_template.format(
+        system_prompt=dto.get("system_prompt"),
+        question=dto.get("question"),
+        model_answer=dto.get("model_answer"),
+        answer=dto.get("answer"),
+    )
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -52,3 +108,40 @@ async def test_generate_message_for_guest_user(
     assert ai_response_id.startswith(
         "chatcmpl-"
     ), "ai_response_id does not start with 'chatcmpl-'"
+
+    evaluation_prompt = create_evaluation_prompt(
+        {
+            "system_prompt": get_prompt_by_cat_id("moko"),
+            "question": user_message,
+            "model_answer": expected_ai_message,
+            "answer": message,
+        }
+    )
+
+    async_open_ai = AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"])
+
+    evaluation_response = await async_open_ai.chat.completions.create(
+        model="gpt-4-turbo",
+        messages=[{"role": "system", "content": evaluation_prompt}],
+        temperature=0.1,
+        user=dto.get("user_id"),
+        response_format={"type": "json_object"},
+    )
+
+    assert evaluation_response.id.startswith(
+        "chatcmpl-"
+    ), "ai_response_id does not start with 'chatcmpl-'"
+
+    content_dict = json.loads(evaluation_response.choices[0].message.content)
+
+    print("---- 実際の回答 開始 ----")
+    print(message)
+    print("---- 実際の回答 ここまで ----")
+
+    print("---- 評価 開始----")
+    print(content_dict)
+    print("----評価 ここまで----")
+
+    score = content_dict.get("score")
+
+    assert score >= 80, f"Expected score to be 80 or above, but got {score}"
