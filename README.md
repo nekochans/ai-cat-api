@@ -278,12 +278,12 @@ docker compose up --build -d
 以下のテストコードを実行するとねこの人格を持ったAIのレスポンス評価をLLMを使って評価します。
 
 ```bash
-rye run pytest -vv -s tests/infrastructure/repository/aiomysql/openai/openai_cat_message_repository/test_generate_message_for_guest_user.py
+rye run pytest -vv -s tests/infrastructure/repository/openai/openai_cat_message_repository/test_generate_message_for_guest_user.py
 ```
 
 ただし普段はテスト実行時間があまりにも長い事や、APIの利用料金が高くなってしまうのでテストをスキップするようにしています。
 
-実行する際は `tests/infrastructure/repository/aiomysql/openai/openai_cat_message_repository/test_generate_message_for_guest_user.py` の以下の部分をコメントアウトしてください。
+実行する際は `tests/infrastructure/repository/openai/openai_cat_message_repository/test_generate_message_for_guest_user.py` の以下の部分をコメントアウトしてください。
 
 ```python
 import pytest
