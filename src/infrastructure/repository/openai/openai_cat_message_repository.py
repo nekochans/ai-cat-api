@@ -53,7 +53,7 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
             model="gpt-3.5-turbo-1106",
             messages=regenerated_messages,
             stream=True,
-            temperature=0.7,
+            temperature=0.1,
             user=user,
         )
 
@@ -120,7 +120,7 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
         response = await self.client.chat.completions.create(
             model="gpt-3.5-turbo-1106",
             messages=copied_messages,
-            temperature=0.7,
+            temperature=0,
             user=str(dto.get("user_id")),
             tools=tools_params,
             tool_choice="auto",

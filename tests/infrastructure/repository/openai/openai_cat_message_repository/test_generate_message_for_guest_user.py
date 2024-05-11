@@ -163,7 +163,7 @@ async def test_generate_message_for_guest_user(
     evaluation_response = await async_open_ai.chat.completions.create(
         model="gpt-4-turbo",
         messages=[{"role": "system", "content": evaluation_prompt}],
-        temperature=0.1,
+        temperature=0,
         user=dto.get("user_id"),
         response_format={"type": "json_object"},
     )
