@@ -127,6 +127,7 @@ class GenerateCatMessageForGuestUserUseCase:
             ai_response_message = ""
 
             create_message_for_guest_user_dto = GenerateMessageForGuestUserDto(
+                cat_id=self.dto["cat_id"],
                 user_id=self.dto["user_id"],
                 chat_messages=chat_messages,
             )
