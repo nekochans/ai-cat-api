@@ -18,7 +18,7 @@ from domain.repository.cat_message_repository_interface import (
     GenerateMessageForGuestUserDto,
     GenerateMessageForGuestUserResult,
 )
-from domain.cat import get_prompt_by_cat_id
+from domain.cat import get_prompt_by_cat_id, CatId
 
 
 class FetchCurrentWeatherResponse(TypedDict):
@@ -113,7 +113,9 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
         以下のようなJSON形式でお願いします。
         ## use_tools
         toolsの利用が必要な場合はtrue,不要な場合はfalseを設定します。
-        """.format(base_system_prompt=get_prompt_by_cat_id(dto.get("cat_id")))
+        """.format(
+            base_system_prompt=get_prompt_by_cat_id(cast(CatId, dto.get("cat_id")))
+        )
 
         copied_messages[0] = {
             "role": "system",
