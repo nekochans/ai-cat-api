@@ -1,9 +1,11 @@
 from typing import Protocol, List, TypedDict
 from collections.abc import AsyncIterator
 from domain.message import ChatMessage
+from domain.cat import CatId
 
 
 class GenerateMessageForGuestUserDto(TypedDict):
+    cat_id: CatId
     user_id: str
     chat_messages: List[ChatMessage]
 

@@ -131,6 +131,7 @@ async def test_generate_message_for_guest_user(
     repository = OpenAiCatMessageRepository()
 
     dto = GenerateMessageForGuestUserDto(
+        cat_id="moko",
         user_id="0e9633ca-1002-47d3-92d4-45a322e7eba1",
         chat_messages=[
             {"role": "system", "content": get_prompt_by_cat_id("moko")},
@@ -161,7 +162,7 @@ async def test_generate_message_for_guest_user(
     async_open_ai = AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
     evaluation_response = await async_open_ai.chat.completions.create(
-        model="gpt-4-turbo",
+        model="gpt-4o",
         messages=[{"role": "system", "content": evaluation_prompt}],
         temperature=0,
         user=dto.get("user_id"),

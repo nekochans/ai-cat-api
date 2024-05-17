@@ -18,6 +18,7 @@ from domain.repository.cat_message_repository_interface import (
     GenerateMessageForGuestUserDto,
     GenerateMessageForGuestUserResult,
 )
+from domain.cat import get_prompt_by_cat_id, CatId
 
 
 class FetchCurrentWeatherResponse(TypedDict):
@@ -50,7 +51,7 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
         )
 
         response = await self.client.chat.completions.create(
-            model="gpt-3.5-turbo-1106",
+            model="gpt-4o",
             messages=regenerated_messages,
             stream=True,
             temperature=0.1,
@@ -107,10 +108,14 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
         copied_messages = messages.copy()
 
         system_prompt = """
-        あなたの役割は与えられた会話履歴からtoolsの利用が必要かどうか判断する事です。
-        JSONのキーはuse_toolsとしてください。
-        toolsの利用が必要な場合はtrue,不要な場合はfalseを返します。
-        """
+        {base_system_prompt}
+        # Output Indicator
+        以下のようなJSON形式でお願いします。
+        ## use_tools
+        toolsの利用が必要な場合はtrue,不要な場合はfalseを設定します。
+        """.format(
+            base_system_prompt=get_prompt_by_cat_id(cast(CatId, dto.get("cat_id")))
+        )
 
         copied_messages[0] = {
             "role": "system",
@@ -118,7 +123,7 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
         }
 
         response = await self.client.chat.completions.create(
-            model="gpt-3.5-turbo-1106",
+            model="gpt-4o",
             messages=copied_messages,
             temperature=0,
             user=str(dto.get("user_id")),
