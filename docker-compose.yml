@@ -21,7 +21,6 @@ services:
     depends_on:
       - ai-cat-api-mysql
     volumes:
-      - ./.flake8:/.flake8
       - ./Makefile:/Makefile
       - ./pyproject.toml:/pyproject.toml
       - ./requirements.lock:/requirements.lock
