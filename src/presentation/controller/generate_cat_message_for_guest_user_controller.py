@@ -2,7 +2,7 @@ from typing import Optional, cast
 from collections.abc import AsyncIterator
 from fastapi import status
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, Field
 from presentation.sse import format_sse, generate_error_response
 from domain.cat import CatId
 from domain.unique_id import is_uuid_format, generate_unique_id
@@ -28,9 +28,25 @@ from usecase.generate_cat_message_for_guest_user_use_case import (
 
 
 class GenerateCatMessageForGuestUserRequestBody(BaseModel):
-    userId: str
-    message: str
-    conversationId: Optional[str] = None
+    userId: str = Field(
+        description="ユーザーごとのユニークID。UUID形式である必要があります。",
+        json_schema_extra={
+            "examples": ["a010dfa5-37e9-49d1-958f-c7ab1342e3ea"],
+        },
+    )
+    message: str = Field(
+        description="ユーザーの入力した自由テキスト。",
+        json_schema_extra={
+            "examples": ["こんにちは！ねこちゃん！"],
+        },
+    )
+    conversationId: Optional[str] = Field(
+        default=None,
+        description="会話ごとのユニークID。UUID形式である必要があります。これを指定すると前回の会話履歴をContextに含めたレスポンスが返ります。",
+        json_schema_extra={
+            "examples": ["839a145b-3028-4a2c-86d0-8ce6ca6fa9b2"],
+        },
+    )
 
     @field_validator("userId", "conversationId")
     @classmethod
@@ -50,8 +66,18 @@ class GenerateCatMessageForGuestUserRequestBody(BaseModel):
 
 
 class GenerateCatMessageForGuestUserSuccessResponseBody(BaseModel):
-    conversationId: str
-    message: str
+    conversationId: str = Field(
+        description="会話ごとのユニークID。UUID形式。",
+        json_schema_extra={
+            "examples": ["839a145b-3028-4a2c-86d0-8ce6ca6fa9b2"],
+        },
+    )
+    message: str = Field(
+        description="ねこ型AIアシスタントが生成したメッセージ。",
+        json_schema_extra={
+            "examples": ["はじめましてにゃん🐱"],
+        },
+    )
 
 
 class GenerateCatMessageForGuestUserErrorResponseBody(BaseModel):
