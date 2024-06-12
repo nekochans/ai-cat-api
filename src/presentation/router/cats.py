@@ -46,6 +46,23 @@ async def generate_cat_message_for_guest_user(
     ),
     credentials: HTTPBasicCredentials = Depends(basic_auth),
 ) -> StreamingResponse:
+    """
+    このエンドポイントはねこ型AIアシスタントのメッセージを生成します。
+    ゲストユーザー向けの機能です。よって画像や音声データの送信は不可となっています。
+
+    OpenAPIでは表現方法が分からないのでJSON形式になっていますが、実際にはServer Sent Events(SSE)形式のレスポンスが返却されます。
+
+    < HTTP/1.1 200 OK \n
+    < date: Wed, 12 Jun 2024 15:49:51 GMT \n
+    < server: uvicorn \n
+    < ai-meow-cat-request-id: dc2054fa-4edd-42d2-a687-cff529456c0d \n
+    < content-type: text/event-stream; charset=utf-8 \n
+    < Transfer-Encoding: chunked \n
+    < \n
+    data: {"conversationId": "dc2054fa-4edd-42d2-a687-cff529456c0d", "message": "こんにちは"} \n
+    data: {"conversationId": "dc2054fa-4edd-42d2-a687-cff529456c0d", "message": "、"} \n
+    """
+
     controller = GenerateCatMessageForGuestUserController(cat_id, request_body)
 
     return await controller.exec()
