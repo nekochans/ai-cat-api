@@ -47,10 +47,9 @@ async def generate_cat_message_for_guest_user(
     credentials: HTTPBasicCredentials = Depends(basic_auth),
 ) -> StreamingResponse:
     """
-    このエンドポイントはねこ型AIアシスタントのメッセージを生成します。
-    ゲストユーザー向けの機能です。よって画像や音声データの送信は不可となっています。
-
-    OpenAPIでは表現方法が分からないのでJSON形式になっていますが、実際にはServer Sent Events(SSE)形式のレスポンスが返却されます。
+    このエンドポイントはねこ型AIアシスタントのメッセージを生成します。 \n
+    ゲストユーザー向けの機能です。よって画像や音声データの送信は不可となっています。 \n
+    OpenAPIでは表現方法が分からないのでJSON形式になっていますが、実際には以下のようにServer Sent Events(SSE)形式のレスポンスが返却されます。 \n
 
     < HTTP/1.1 200 OK \n
     < date: Wed, 12 Jun 2024 15:49:51 GMT \n
