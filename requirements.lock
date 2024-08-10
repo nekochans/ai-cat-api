@@ -32,8 +32,6 @@ click==8.1.7
     # via uvicorn
 distro==1.9.0
     # via openai
-execnet==2.1.0
-    # via pytest-xdist
 fastapi==0.112.0
     # via ai-cat-api
 h11==0.14.0
@@ -48,20 +46,10 @@ idna==3.6
     # via anyio
     # via httpx
     # via requests
-iniconfig==2.0.0
-    # via pytest
 jiter==0.5.0
     # via openai
-mypy==1.11.1
-    # via ai-cat-api
-mypy-extensions==1.0.0
-    # via mypy
 openai==1.40.3
     # via ai-cat-api
-packaging==24.0
-    # via pytest
-pluggy==1.5.0
-    # via pytest
 pydantic==2.6.4
     # via fastapi
     # via openai
@@ -69,23 +57,10 @@ pydantic-core==2.16.3
     # via pydantic
 pymysql==1.1.0
     # via aiomysql
-pytest==8.3.2
-    # via ai-cat-api
-    # via pytest-asyncio
-    # via pytest-env
-    # via pytest-xdist
-pytest-asyncio==0.23.8
-    # via ai-cat-api
-pytest-env==1.1.3
-    # via ai-cat-api
-pytest-xdist==3.6.1
-    # via ai-cat-api
 regex==2023.12.25
     # via tiktoken
 requests==2.31.0
     # via tiktoken
-ruff==0.5.7
-    # via ai-cat-api
 sniffio==1.3.1
     # via anyio
     # via httpx
@@ -98,7 +73,6 @@ tqdm==4.66.2
     # via openai
 typing-extensions==4.11.0
     # via fastapi
-    # via mypy
     # via openai
     # via pydantic
     # via pydantic-core
