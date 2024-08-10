@@ -1,8 +1,8 @@
-FROM python:3.12.2-slim AS build
+FROM python:3.12.4-slim AS build
 
 RUN apt-get update && apt-get install -y ca-certificates
 
-FROM python:3.12.2-slim
+FROM python:3.12.4-slim
 
 WORKDIR /src
 
