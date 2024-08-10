@@ -1,7 +1,9 @@
 version: "3.9"
 services:
   ai-cat-api:
-    build: .
+    build:
+      context: .
+      target: development
     ports:
       - "5002:5000"
     environment:

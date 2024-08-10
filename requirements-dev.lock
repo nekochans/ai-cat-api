@@ -6,6 +6,8 @@
 #   features: []
 #   all-features: false
 #   with-sources: false
+#   generate-hashes: false
+#   universal: false
 
 -e file:.
 aiomysql==0.2.0
@@ -18,7 +20,7 @@ anyio==4.3.0
     # via starlette
 asyncio==3.4.3
     # via ai-cat-api
-asyncstdlib==3.12.2
+asyncstdlib==3.12.4
     # via ai-cat-api
 certifi==2024.2.2
     # via httpcore
@@ -32,7 +34,7 @@ distro==1.9.0
     # via openai
 execnet==2.1.0
     # via pytest-xdist
-fastapi==0.110.1
+fastapi==0.112.0
     # via ai-cat-api
 h11==0.14.0
     # via httpcore
@@ -48,15 +50,16 @@ idna==3.6
     # via requests
 iniconfig==2.0.0
     # via pytest
-mypy==1.9.0
-    # via ai-cat-api
+jiter==0.5.0
+    # via openai
+mypy==1.11.1
 mypy-extensions==1.0.0
     # via mypy
-openai==1.16.2
+openai==1.40.3
     # via ai-cat-api
 packaging==24.0
     # via pytest
-pluggy==1.4.0
+pluggy==1.5.0
     # via pytest
 pydantic==2.6.4
     # via fastapi
@@ -65,30 +68,25 @@ pydantic-core==2.16.3
     # via pydantic
 pymysql==1.1.0
     # via aiomysql
-pytest==8.1.1
-    # via ai-cat-api
+pytest==8.3.2
     # via pytest-asyncio
     # via pytest-env
     # via pytest-xdist
-pytest-asyncio==0.23.6
-    # via ai-cat-api
+pytest-asyncio==0.23.8
 pytest-env==1.1.3
-    # via ai-cat-api
-pytest-xdist==3.5.0
-    # via ai-cat-api
+pytest-xdist==3.6.1
 regex==2023.12.25
     # via tiktoken
 requests==2.31.0
     # via tiktoken
-ruff==0.4.1
-    # via ai-cat-api
+ruff==0.5.7
 sniffio==1.3.1
     # via anyio
     # via httpx
     # via openai
 starlette==0.37.2
     # via fastapi
-tiktoken==0.6.0
+tiktoken==0.7.0
     # via ai-cat-api
 tqdm==4.66.2
     # via openai
@@ -100,5 +98,5 @@ typing-extensions==4.11.0
     # via pydantic-core
 urllib3==2.2.1
     # via requests
-uvicorn==0.29.0
+uvicorn==0.30.5
     # via ai-cat-api
