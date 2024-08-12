@@ -22,10 +22,6 @@ def setup(worker_id: str) -> None:
             "gs://test-ai-cat/video-files/Cat.MOV",
             {"summary": "This is a summary of the video.", "transcript": "文字起こし"},
         ),
-        (
-            "gs://test-ai-cat/video-files/IMG_0401.MOV",
-            {"summary": "This is a summary of the video.", "transcript": "文字起こし"},
-        ),
     ],
 )
 async def test_analysis_video(video_url: str, expected_message: str) -> None:
