@@ -52,12 +52,14 @@ class GeminiVideoRepository(VideoRepositoryInterface):
             video,
             """
             # Instruction
-            動画の内容を確認して要約の作成をお願いします。
+            - 動画の内容を確認して要約の作成をお願いします。
+            - 動画の内容を文字起こし作成をお願いします。
             
             # 制約条件
             - 以下のJSON形式で返すようにお願いします。
-              - {"summary": "動画の要約文章をここに設定"}
+              - {"summary": "動画の要約文章をここに設定", "transcript": "動画の文字起こしをここに設定"}
                 - "summary" には動画の要約文章を設定します。
+                - "transcript" には動画の文字起こしを設定します。
             - ハルシネーションを起こさないでください。
             """,
         ]

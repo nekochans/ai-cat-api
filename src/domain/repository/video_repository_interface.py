@@ -7,6 +7,7 @@ class AnalysisVideoDto(TypedDict):
 
 class AnalysisVideoResult(TypedDict):
     summary: str
+    transcript: str
 
 
 class VideoRepositoryInterface(Protocol):
