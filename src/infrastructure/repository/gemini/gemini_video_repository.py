@@ -52,18 +52,24 @@ class GeminiVideoRepository(VideoRepositoryInterface):
             video,
             """
             # Instruction
-            動画の内容を確認して要約の作成をお願いします。
+            - 動画の内容を確認して要約の作成をお願いします。
+            - 動画の内容を文字起こし作成をお願いします。
             
             # 制約条件
             - 以下のJSON形式で返すようにお願いします。
-              - {"summary": "動画の要約文章をここに設定"}
+              - {"summary": "動画の要約文章をここに設定", "transcript": "動画の文字起こしをここに設定"}
                 - "summary" には動画の要約文章を設定します。
+                - "transcript" には動画の文字起こしを設定します。
+                  - 文字起こしは長くなる事が多いので制限に引っかかりそうなら適切に要約してください。
             - ハルシネーションを起こさないでください。
             """,
         ]
 
         generation_config = {
             "response_mime_type": "application/json",
+            "temperature": 0.0,
+            "top_k": 1,
+            "top_p": 0.9,
         }
 
         response = await model.generate_content_async(
@@ -73,6 +79,9 @@ class GeminiVideoRepository(VideoRepositoryInterface):
 
         response_content = response.text
 
-        result: AnalysisVideoResult = json.loads(response_content)
+        try:
+            result: AnalysisVideoResult = json.loads(response_content)
+        except json.JSONDecodeError:
+            raise Exception(f"JSON decode error: {response_content}")
 
         return result
