@@ -5,6 +5,7 @@ from typing import TypedDict
 class GoogleCloudStoragePathComponents(TypedDict):
     bucket_name: str
     filename: str
+    file_extension: str
 
 
 def parse_gcs_path(gcs_path: str) -> GoogleCloudStoragePathComponents:
@@ -38,4 +39,11 @@ def parse_gcs_path(gcs_path: str) -> GoogleCloudStoragePathComponents:
     # ファイル名を取得（パスが1つのコンポーネントしかない場合に対応）
     filename = os.path.basename(components[1]) if len(components) > 1 else ""
 
-    return {"bucket_name": bucket_name, "filename": filename}
+    # ファイルの拡張子を取得
+    file_extension = os.path.splitext(filename)[1][1:] if filename else ""
+
+    return {
+        "bucket_name": bucket_name,
+        "filename": filename,
+        "file_extension": file_extension,
+    }
