@@ -40,6 +40,10 @@ execnet==2.1.1
     # via pytest-xdist
 fastapi==0.112.0
     # via ai-cat-api
+ffmpeg-python==0.2.0
+    # via ai-cat-api
+future==1.0.0
+    # via ffmpeg-python
 google-api-core==2.19.1
     # via google-cloud-aiplatform
     # via google-cloud-bigquery
