@@ -13,7 +13,7 @@ def setup(worker_id: str) -> None:
     sys.stdout = sys.stderr
 
 
-# @pytest.mark.skip(reason="APIの課金が発生する、実行時間が非常に長いため普段はスキップ")
+@pytest.mark.skip(reason="APIの課金が発生する、実行時間が非常に長いため普段はスキップ")
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "video_url, expected_message",
@@ -32,8 +32,6 @@ async def test_create_video_transcript(video_url: str, expected_message: str) ->
     )
 
     result = await repository.create_video_transcript(dto)
-
-    print(result)
 
     assert "transcript" in result, "Result does not contain 'transcript' key"
     assert isinstance(result["transcript"], str), "'transcript' is not a string"
