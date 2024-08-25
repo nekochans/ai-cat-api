@@ -176,7 +176,7 @@ class GoogleVideoTranscriptRepository(VideoTranscriptRepositoryInterface):
             )
             raise
 
-        result = {
+        result: CreateVideoTranscriptResult = {
             "transcript": transcript,
         }
 
