@@ -5,7 +5,9 @@ import tempfile
 import ffmpeg
 import time
 from pathlib import Path
-from google.cloud import storage, speech
+
+# TODO: なぜかmypyの型エラーになるので type: ignore で回避している
+from google.cloud import storage, speech  # type: ignore
 from google.oauth2 import service_account
 from google.api_core import exceptions as google_exceptions
 from domain.repository.video_transcript_repository_interface import (

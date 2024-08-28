@@ -1,7 +1,9 @@
 import os
 import json
 import base64
-from google.cloud import storage
+
+# TODO: なぜかmypyの型エラーになるので type: ignore で回避している
+from google.cloud import storage  # type: ignore
 from google.oauth2 import service_account
 import vertexai
 from vertexai.generative_models import GenerativeModel, Part
