@@ -40,11 +40,16 @@ execnet==2.1.1
     # via pytest-xdist
 fastapi==0.112.0
     # via ai-cat-api
+ffmpeg-python==0.2.0
+    # via ai-cat-api
+future==1.0.0
+    # via ffmpeg-python
 google-api-core==2.19.1
     # via google-cloud-aiplatform
     # via google-cloud-bigquery
     # via google-cloud-core
     # via google-cloud-resource-manager
+    # via google-cloud-speech
     # via google-cloud-storage
 google-auth==2.33.0
     # via google-api-core
@@ -52,6 +57,7 @@ google-auth==2.33.0
     # via google-cloud-bigquery
     # via google-cloud-core
     # via google-cloud-resource-manager
+    # via google-cloud-speech
     # via google-cloud-storage
 google-cloud-aiplatform==1.61.0
     # via ai-cat-api
@@ -62,6 +68,8 @@ google-cloud-core==2.4.1
     # via google-cloud-storage
 google-cloud-resource-manager==1.12.5
     # via google-cloud-aiplatform
+google-cloud-speech==2.27.0
+    # via ai-cat-api
 google-cloud-storage==2.18.2
     # via ai-cat-api
     # via google-cloud-aiplatform
@@ -100,7 +108,7 @@ iniconfig==2.0.0
     # via pytest
 jiter==0.5.0
     # via openai
-mypy==1.11.1
+mypy==1.11.2
 mypy-extensions==1.0.0
     # via mypy
 numpy==2.0.1
@@ -117,10 +125,12 @@ proto-plus==1.24.0
     # via google-api-core
     # via google-cloud-aiplatform
     # via google-cloud-resource-manager
+    # via google-cloud-speech
 protobuf==5.27.3
     # via google-api-core
     # via google-cloud-aiplatform
     # via google-cloud-resource-manager
+    # via google-cloud-speech
     # via googleapis-common-protos
     # via grpc-google-iam-v1
     # via grpcio-status

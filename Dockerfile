@@ -7,13 +7,13 @@ FROM python:3.12.4-slim AS development
 WORKDIR /src
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends build-essential
+  apt-get install -y --no-install-recommends build-essential ffmpeg
 
 COPY requirements.lock requirements-dev.lock ./
 
 RUN sed '/-e/d' requirements.lock > requirements.txt && \
-    sed '/-e/d' requirements-dev.lock >> requirements.txt && \
-    pip install -r requirements.txt
+  sed '/-e/d' requirements-dev.lock >> requirements.txt && \
+  pip install -r requirements.txt
 
 COPY ./src/ .
 
@@ -30,9 +30,11 @@ FROM python:3.12.4-slim
 WORKDIR /src
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends build-essential
+  apt-get install -y --no-install-recommends build-essential ffmpeg && \
+  apt-get clean && \
+  rm -rf /var/lib/apt/lists/*
 
-COPY requirements.lock requirements-dev.lock ./
+COPY requirements.lock ./
 
 RUN sed '/-e/d' requirements.lock > requirements.txt && \
   pip install -r requirements.txt

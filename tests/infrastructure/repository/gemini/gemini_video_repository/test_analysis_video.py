@@ -20,7 +20,11 @@ def setup(worker_id: str) -> None:
     [
         (
             "gs://test-ai-cat/video-files/Cat.MOV",
-            {"summary": "This is a summary of the video.", "transcript": "文字起こし"},
+            {"summary": "This is a summary of the video."},
+        ),
+        (
+            "gs://test-ai-cat/video-files/IMG_0401.MOV",
+            {"summary": "This is a summary of the video."},
         ),
     ],
 )
@@ -36,9 +40,5 @@ async def test_analysis_video(video_url: str, expected_message: str) -> None:
     assert "summary" in result, "Result does not contain 'summary' key"
     assert isinstance(result["summary"], str), "'summary' is not a string"
     assert len(result["summary"]) > 0, "'summary' is an empty string"
-
-    assert "transcript" in result, "Result does not contain 'transcript' key"
-    assert isinstance(result["transcript"], str), "'transcript' is not a string"
-    assert len(result["transcript"]) > 0, "'transcript' is an empty string"
 
     # TODO: 後で評価用のLLMを使って expected_message と result["summary"] の類似度を評価する

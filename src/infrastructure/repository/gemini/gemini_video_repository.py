@@ -1,19 +1,25 @@
 import os
 import json
 import base64
+
+# TODO: なぜかmypyの型エラーになるので type: ignore で回避している
+from google.cloud import storage  # type: ignore
+from google.oauth2 import service_account
+import vertexai
+from vertexai.generative_models import GenerativeModel, Part
 from domain.repository.video_repository_interface import (
     VideoRepositoryInterface,
     AnalysisVideoDto,
     AnalysisVideoResult,
 )
-from google.cloud import storage
-from google.oauth2 import service_account
-import vertexai
-from vertexai.generative_models import GenerativeModel, Part
+from log.logger import AppLogger
 
 
 class GeminiVideoRepository(VideoRepositoryInterface):
     def __init__(self) -> None:
+        app_logger = AppLogger()
+        self.logger = app_logger.logger
+
         encoded_service_account_key = os.getenv("GOOGLE_CLOUD_CREDENTIALS")
         if encoded_service_account_key is None:
             raise Exception("GOOGLE_CLOUD_CREDENTIALS is not set.")
@@ -57,10 +63,8 @@ class GeminiVideoRepository(VideoRepositoryInterface):
             
             # 制約条件
             - 以下のJSON形式で返すようにお願いします。
-              - {"summary": "動画の要約文章をここに設定", "transcript": "動画の文字起こしをここに設定"}
+              - {"summary": "動画の要約文章をここに設定"}
                 - "summary" には動画の要約文章を設定します。
-                - "transcript" には動画の文字起こしを設定します。
-                  - 文字起こしは長くなる事が多いので制限に引っかかりそうなら適切に要約してください。
             - ハルシネーションを起こさないでください。
             """,
         ]
