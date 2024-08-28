@@ -123,7 +123,7 @@ class GoogleVideoTranscriptRepository(VideoTranscriptRepositoryInterface):
                 start_time = time.time()
 
                 while True:
-                    if operation.done():
+                    if operation.done():  # type: ignore
                         break
                     if time.time() - start_time > timeout:
                         raise TimeoutError(
@@ -131,7 +131,7 @@ class GoogleVideoTranscriptRepository(VideoTranscriptRepositoryInterface):
                         )
                     time.sleep(10)  # Poll every 10 seconds
 
-                response = operation.result()
+                response = operation.result()  # type: ignore
 
                 transcript = ""
                 for result in response.results:
