@@ -7,6 +7,7 @@ class AnalysisVideoDto(TypedDict):
 
 class AnalysisVideoResult(TypedDict):
     summary: str
+    duration_in_seconds: int
 
 
 class VideoRepositoryInterface(Protocol):
