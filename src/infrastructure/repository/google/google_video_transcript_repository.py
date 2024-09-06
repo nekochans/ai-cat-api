@@ -50,7 +50,7 @@ class GoogleVideoTranscriptRepository(VideoTranscriptRepositoryInterface):
         )
 
         with tempfile.NamedTemporaryFile(
-            suffix=".mov"
+            suffix=".mp4"
         ) as video_temp, tempfile.NamedTemporaryFile(suffix=".wav") as audio_temp:
             file_path = video_uri.replace(
                 f"gs://{gcs_path_components['bucket_name']}/", ""
@@ -162,7 +162,7 @@ class GoogleVideoTranscriptRepository(VideoTranscriptRepositoryInterface):
         file_path = video_uri.replace(f"gs://{gcs_path_components['bucket_name']}/", "")
         blob = bucket.blob(file_path)
 
-        with tempfile.NamedTemporaryFile(suffix=".mov") as temp_file:
+        with tempfile.NamedTemporaryFile(suffix=".mp4") as temp_file:
             blob.download_to_filename(temp_file.name)
             try:
                 probe = ffmpeg.probe(temp_file.name)

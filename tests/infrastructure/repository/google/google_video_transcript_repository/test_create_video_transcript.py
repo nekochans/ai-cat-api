@@ -20,7 +20,7 @@ def setup(worker_id: str) -> None:
     "video_url, expected",
     [
         (
-            "gs://test-ai-cat/video-files/Cat.MOV",
+            "gs://test-ai-cat/video-files/2024/neighborhood-cat.mp4",
             {"transcript": "文字起こし", "duration_in_seconds": 42},
         ),
     ],
