@@ -20,12 +20,12 @@ def setup(worker_id: str) -> None:
     "video_url, expected",
     [
         (
-            "gs://test-ai-cat/video-files/Cat.MOV",
+            "gs://test-ai-cat/video-files/2024/neighborhood-cat.mp4",
             {"summary": "This is a summary of the video.", "duration_in_seconds": 42},
         ),
         (
-            "gs://test-ai-cat/video-files/IMG_0401.MOV",
-            {"summary": "This is a summary of the video.", "duration_in_seconds": 233},
+            "gs://test-ai-cat/video-files/2024/strawberry-fair.mp4",
+            {"summary": "This is a summary of the video.", "duration_in_seconds": 48},
         ),
     ],
 )

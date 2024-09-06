@@ -4,9 +4,8 @@ import base64
 import tempfile
 import ffmpeg
 import time
+import math
 from pathlib import Path
-
-# TODO: なぜかmypyの型エラーになるので type: ignore で回避している
 from google.cloud import storage, speech  # type: ignore
 from google.oauth2 import service_account
 from google.api_core import exceptions as google_exceptions
@@ -51,7 +50,7 @@ class GoogleVideoTranscriptRepository(VideoTranscriptRepositoryInterface):
         )
 
         with tempfile.NamedTemporaryFile(
-            suffix=".mov"
+            suffix=".mp4"
         ) as video_temp, tempfile.NamedTemporaryFile(suffix=".wav") as audio_temp:
             file_path = video_uri.replace(
                 f"gs://{gcs_path_components['bucket_name']}/", ""
@@ -155,11 +154,51 @@ class GoogleVideoTranscriptRepository(VideoTranscriptRepositoryInterface):
                 )
                 raise
 
+    def extract_video_duration(self, video_uri: str) -> int:
+        gcs_path_components = parse_gcs_path(video_uri)
+        bucket = self.google_cloud_storage_client.bucket(
+            gcs_path_components["bucket_name"]
+        )
+        file_path = video_uri.replace(f"gs://{gcs_path_components['bucket_name']}/", "")
+        blob = bucket.blob(file_path)
+
+        with tempfile.NamedTemporaryFile(suffix=".mp4") as temp_file:
+            blob.download_to_filename(temp_file.name)
+            try:
+                probe = ffmpeg.probe(temp_file.name)
+                video_info = next(
+                    s for s in probe["streams"] if s["codec_type"] == "video"
+                )
+                duration = float(video_info["duration"])
+                rounded_duration = math.floor(duration)
+                self.logger.info(
+                    "GoogleVideoTranscriptRepository.extract_video_duration.Success",
+                    extra=InfoLogExtra(
+                        info_message=f"Successfully extracted video duration: {rounded_duration} seconds"
+                    ),
+                )
+                return rounded_duration
+            except ffmpeg.Error as e:
+                self.logger.error(
+                    "GoogleVideoTranscriptRepository.extract_video_duration.FFmpegError",
+                    extra=InfoLogExtra(info_message=f"FFmpeg error: {str(e)}"),
+                )
+                raise
+            except Exception as e:
+                self.logger.error(
+                    "GoogleVideoTranscriptRepository.extract_video_duration.Error",
+                    extra=InfoLogExtra(
+                        info_message=f"Error retrieving video duration: {str(e)}"
+                    ),
+                )
+                raise
+
     async def create_video_transcript(
         self, dto: CreateVideoTranscriptDto
     ) -> CreateVideoTranscriptResult:
         try:
             transcript = self.extract_audio_and_transcribe(dto["video_url"])
+            duration = self.extract_video_duration(dto["video_url"])
         except TimeoutError as e:
             self.logger.error(
                 "GoogleVideoTranscriptRepository.create_video_transcript.TimeoutError",
@@ -168,7 +207,6 @@ class GoogleVideoTranscriptRepository(VideoTranscriptRepositoryInterface):
                 ),
             )
             raise
-
         except Exception as e:
             self.logger.error(
                 "GoogleVideoTranscriptRepository.create_video_transcript.Error",
@@ -180,6 +218,7 @@ class GoogleVideoTranscriptRepository(VideoTranscriptRepositoryInterface):
 
         result: CreateVideoTranscriptResult = {
             "transcript": transcript,
+            "duration_in_seconds": duration,
         }
 
         return result
