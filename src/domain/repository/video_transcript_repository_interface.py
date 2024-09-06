@@ -7,6 +7,7 @@ class CreateVideoTranscriptDto(TypedDict):
 
 class CreateVideoTranscriptResult(TypedDict):
     transcript: str
+    duration_in_seconds: int
 
 
 class VideoTranscriptRepositoryInterface(Protocol):
