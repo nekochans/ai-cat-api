@@ -101,7 +101,7 @@ class GeminiVideoRepository(VideoRepositoryInterface):
         )
 
         video = Part.from_uri(
-            mime_type="video/quicktime",
+            mime_type="video/mp4",
             uri=dto["video_url"],
         )
 
