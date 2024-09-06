@@ -31,6 +31,10 @@ class ErrorLogExtra(TypedDict):
     user_message: str
 
 
+class InfoLogExtra(TypedDict):
+    info_message: str
+
+
 LogLevel = Literal[0, 10, 20, 30, 40, 50]
 
 

@@ -1,7 +1,9 @@
 version: "3.9"
 services:
   ai-cat-api:
-    build: .
+    build:
+      context: .
+      target: development
     ports:
       - "5002:5000"
     environment:
@@ -18,6 +20,10 @@ services:
       PLANET_SCALE_ORG: ${PLANET_SCALE_ORG}
       PLANET_SCALE_TEST_DB_NAME: ${PLANET_SCALE_TEST_DB_NAME}
       PLANET_SCALE_TEST_DB_BRANCH: ${PLANET_SCALE_TEST_DB_BRANCH}
+      GOOGLE_CLOUD_CREDENTIALS: ${GOOGLE_CLOUD_CREDENTIALS}
+      GOOGLE_CLOUD_STORAGE_BUCKET: ${GOOGLE_CLOUD_STORAGE_BUCKET}
+      GOOGLE_CLOUD_PROJECT_ID: ${GOOGLE_CLOUD_PROJECT_ID}
+      GOOGLE_CLOUD_REGION: ${GOOGLE_CLOUD_REGION}
     depends_on:
       - ai-cat-api-mysql
     volumes:
