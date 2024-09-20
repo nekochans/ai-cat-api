@@ -51,7 +51,7 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
         )
 
         response = await self.client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4o-2024-08-06",
             messages=regenerated_messages,
             stream=True,
             temperature=0.1,
