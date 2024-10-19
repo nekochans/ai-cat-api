@@ -13,6 +13,8 @@ from openai.types.chat import (
     ChatCompletionToolParam,
     ChatCompletionMessageToolCall,
 )
+from langsmith.wrappers import wrap_openai
+from langsmith import traceable
 from domain.repository.cat_message_repository_interface import (
     CatMessageRepositoryInterface,
     GenerateMessageForGuestUserDto,
@@ -35,8 +37,9 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
     def __init__(self) -> None:
         self.OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
         self.OPEN_WEATHER_API_KEY = os.environ["OPEN_WEATHER_API_KEY"]
-        self.client = AsyncOpenAI(api_key=self.OPENAI_API_KEY)
+        self.client = wrap_openai(AsyncOpenAI(api_key=self.OPENAI_API_KEY))
 
+    @traceable
     async def generate_message_for_guest_user(
         self, dto: GenerateMessageForGuestUserDto
     ) -> AsyncIterator[GenerateMessageForGuestUserResult]:
@@ -62,6 +65,7 @@ class OpenAiCatMessageRepository(CatMessageRepositoryInterface):
             yield generated_response
 
     # 必要に応じてtoolsを実行してメッセージのリストにtoolsの実行結果を含めて再生成する
+    @traceable
     async def _might_regenerate_messages_contain_tools_results_exec(
         self,
         dto: GenerateMessageForGuestUserDto,
