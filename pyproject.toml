@@ -6,10 +6,10 @@ authors = [
     { name = "keitakn", email = "keita.koga.work@gmail.com" }
 ]
 dependencies = [
-    "uvicorn>=0.30.5",
-    "fastapi>=0.112.0",
-    "openai>=1.40.3",
-    "tiktoken>=0.7.0",
+    "uvicorn>=0.32.0",
+    "fastapi>=0.115.4",
+    "openai>=1.54.3",
+    "tiktoken>=0.8.0",
     "asyncio>=3.4.3",
     "aiomysql>=0.2.0",
     "asyncstdlib>=3.12.4",
