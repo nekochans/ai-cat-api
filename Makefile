@@ -1,13 +1,16 @@
 .PHONY: lint format typecheck lint-container format-container test-container typecheck-container ci run
 
 lint:
-	rye run ruff check
+	uv run ruff check
 
 format:
-	rye run ruff format
+	uv run ruff format
 
 typecheck:
-	rye run mypy --strict
+	uv run mypy --strict
+
+run:
+	uv run python src/main.py
 
 lint-container:
 	docker compose exec ai-cat-api bash -c "cd / && ruff check --output-format=github src/ tests/"
@@ -23,6 +26,3 @@ typecheck-container:
 
 ci: lint-container typecheck-container test-container
 	docker compose exec ai-cat-api bash -c "cd / && ruff format src/ tests/ --check --diff"
-
-run:
-	uv run python src/main.py
