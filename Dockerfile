@@ -1,8 +1,11 @@
-FROM python:3.12.4-slim AS build
+ARG PYTHON_VERSION=3.12.4
+ARG PORT=5000
+
+FROM python:${PYTHON_VERSION}-slim AS build
 
 RUN apt-get update && apt-get install -y ca-certificates
 
-FROM python:3.12.4-slim
+FROM python:${PYTHON_VERSION}-slim
 
 WORKDIR /src
 
@@ -22,10 +25,10 @@ RUN uv export -o requirements.txt --no-hashes
 
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
-EXPOSE 5000
+EXPOSE ${PORT}
 
 ENV SSL_CERT_PATH /etc/ssl/certs/ca-certificates.crt
 
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "${PORT}"]
