@@ -2,47 +2,32 @@
 name = "ai-cat-api"
 version = "0.1.0"
 description = "AI Meow Catで利用されるねこの人格をインプットしたLLM API"
-authors = [
-    { name = "keitakn", email = "keita.koga.work@gmail.com" }
-]
-dependencies = [
-    "uvicorn>=0.30.5",
-    "fastapi>=0.112.0",
-    "openai>=1.40.3",
-    "tiktoken>=0.7.0",
-    "asyncio>=3.4.3",
-    "aiomysql>=0.2.0",
-    "asyncstdlib>=3.12.4",
-    "httpx>=0.27.0",
-    "google-cloud-storage>=2.18.2",
-    "google-cloud-aiplatform>=1.61.0",
-    "google-cloud-speech>=2.27.0",
-    "ffmpeg-python>=0.2.0",
-    "langsmith>=0.1.136",
-]
 readme = "README.md"
-requires-python = ">= 3.8"
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.rye]
-managed = true
-dev-dependencies = [
-    "pytest>=8.3.2",
-    "mypy>=1.11.2",
-    "pytest-env>=1.1.3",
-    "pytest-xdist>=3.6.1",
-    "pytest-asyncio>=0.23.8",
-    "ruff>=0.5.7",
+requires-python = ">=3.12.4"
+dependencies = [
+    "aiomysql>=0.2.0",
+    "asyncio>=3.4.3",
+    "asyncstdlib>=3.13.0",
+    "fastapi>=0.115.5",
+    "httpx>=0.27.2",
+    "langsmith>=0.1.143",
+    "openai>=1.54.4",
+    "tiktoken>=0.8.0",
+    "uvicorn>=0.32.0",
 ]
 
-[tool.hatch.metadata]
-allow-direct-references = true
+[dependency-groups]
+dev = [
+    "mypy>=1.13.0",
+    "pytest>=8.3.3",
+    "pytest-asyncio>=0.24.0",
+    "pytest-env>=1.1.5",
+    "pytest-xdist>=3.6.1",
+    "ruff>=0.7.3",
+]
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/ai_cat_api"]
+[tool.ruff.lint.isort]
+known-third-party = ["fastapi", "pydantic", "starlette"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

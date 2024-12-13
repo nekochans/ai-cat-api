@@ -1,45 +1,28 @@
-FROM python:3.12.4-slim AS build
+ARG PYTHON_VERSION=3.12.4
+
+FROM python:${PYTHON_VERSION}-slim AS build
 
 RUN apt-get update && apt-get install -y ca-certificates
 
-FROM python:3.12.4-slim AS development
+FROM python:${PYTHON_VERSION}-slim
 
 WORKDIR /src
 
 RUN apt-get update && \
-  apt-get install -y --no-install-recommends build-essential ffmpeg
-
-COPY requirements.lock requirements-dev.lock ./
-
-RUN sed '/-e/d' requirements.lock > requirements.txt && \
-  sed '/-e/d' requirements-dev.lock >> requirements.txt && \
-  pip install -r requirements.txt
-
-COPY ./src/ .
-
-EXPOSE 5000
-
-ENV SSL_CERT_PATH /etc/ssl/certs/ca-certificates.crt
-
-COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000"]
-
-FROM python:3.12.4-slim
-
-WORKDIR /src
-
-RUN apt-get update && \
-  apt-get install -y --no-install-recommends build-essential ffmpeg && \
+  apt-get install -y --no-install-recommends build-essential && \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/*
 
-COPY requirements.lock ./
+COPY pyproject.toml pyproject.toml ./
+COPY uv.lock uv.lock ./
 
-RUN sed '/-e/d' requirements.lock > requirements.txt && \
-  pip install -r requirements.txt
+COPY --from=ghcr.io/astral-sh/uv:0.5.8 /uv /bin/uv
 
 COPY ./src/ .
+
+RUN uv export -o requirements.txt --no-hashes
+
+RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
 EXPOSE 5000
 
