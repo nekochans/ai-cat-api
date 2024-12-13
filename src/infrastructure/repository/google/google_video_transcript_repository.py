@@ -49,9 +49,10 @@ class GoogleVideoTranscriptRepository(VideoTranscriptRepositoryInterface):
             gcs_path_components["bucket_name"]
         )
 
-        with tempfile.NamedTemporaryFile(
-            suffix=".mp4"
-        ) as video_temp, tempfile.NamedTemporaryFile(suffix=".wav") as audio_temp:
+        with (
+            tempfile.NamedTemporaryFile(suffix=".mp4") as video_temp,
+            tempfile.NamedTemporaryFile(suffix=".wav") as audio_temp,
+        ):
             file_path = video_uri.replace(
                 f"gs://{gcs_path_components['bucket_name']}/", ""
             )
