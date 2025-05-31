@@ -68,12 +68,12 @@ OPENSSLDIR: "/private/etc/ssl"
 export SSL_CERT_PATH=/private/etc/ssl/cert.pem
 ```
 
-### Ryeのインストール
+### uvのインストール
 
 Homebrew でインストールを実施します。
 
 ```bash
-brew install rye
+brew install uv
 ```
 
 ### 依存packageのインストール & 仮想環境の作成
@@ -81,7 +81,7 @@ brew install rye
 以下を実行します。
 
 ```bash
-rye sync
+uv sync --frozen
 ```
 
 ### Dockerによる環境構築
@@ -212,7 +212,7 @@ make test-container
 make typecheck
 ```
 
-## Ryeでアプリケーションサーバーを起動する
+## `uv` でアプリケーションサーバーを起動する
 
 以下を実行するとアプリケーションサーバーが起動します。
 
